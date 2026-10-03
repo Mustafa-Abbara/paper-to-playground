@@ -4,7 +4,7 @@ An agent that turns a focused research-paper excerpt and a learning brief into a
 offline, interactive HTML explainer for an engineering undergraduate, and checks its own
 work before handing it over.
 
-**Team:** Mustafa Abbara · _add teammates here_
+**Team:** Mustafa Abbara, Zeinab Bassam, Yasmina Mansour
 
 **MODEL_ID:** `deepseek/deepseek-v4.1-flash`
 
