@@ -51,7 +51,7 @@ H (
 The coefficient 1
 2 is because this second choice only occurs half the time. In Appendix 2, the following result is established:
 Theorem 2: The only H satisfying the three above assumptions is of the form:
-H = K
+H = −K
 n
 ∑
 i=1
