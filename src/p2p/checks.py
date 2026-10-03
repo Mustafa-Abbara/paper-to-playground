@@ -357,12 +357,18 @@ def _finite_numbers(v) -> list:
 
 
 def visual_data_problems(visuals: list, outputs: dict, state: dict) -> list[str]:
-    """Which visuals would render empty ('No values to show.') in the page."""
+    """Descriptions of the visuals that would render empty ('No values to show.')."""
+    return [f"visual {i + 1} ({visuals[i].get('type')}: {str(visuals[i].get('title', ''))[:40]})"
+            for i in empty_visual_indices(visuals, outputs, state)]
+
+
+def empty_visual_indices(visuals: list, outputs: dict, state: dict) -> list[int]:
+    """Indices of the visuals that would render empty in the page."""
     bad = []
     for i, v in enumerate(visuals or []):
         if not isinstance(v, dict):
             continue
-        t, name = v.get("type"), f"visual {i + 1} ({v.get('type')}: {str(v.get('title', ''))[:40]})"
+        t = v.get("type")
         R = lambda r: resolve_ref(r, outputs, state)
         if t == "bar":
             series = v.get("series") or [{"values": v.get("values", v.get("source"))}]
@@ -398,7 +404,7 @@ def visual_data_problems(visuals: list, outputs: dict, state: dict) -> list[str]
         else:
             ok = False
         if not ok:
-            bad.append(name)
+            bad.append(i)
     return bad
 
 

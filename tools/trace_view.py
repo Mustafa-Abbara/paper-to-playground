@@ -63,8 +63,8 @@ def main() -> int:
         print(f"  source:    {src.get('paper_title')} | {src.get('section_label')} | "
               f"{src.get('equation_label')}")
         print(f"  equation:  {src.get('equation_text')}")
-        print(f"  inputs:    " + ", ".join(f"{s['id']}={s.get('default_json')}" for s in p.get("state", [])))
-        print(f"  outputs:   " + ", ".join(o["key"] for o in p.get("outputs", [])))
+        print("  inputs:    " + ", ".join(f"{s['id']}={s.get('default_json')}" for s in p.get("state", [])))
+        print("  outputs:   " + ", ".join(o["key"] for o in p.get("outputs", [])))
         print(f"  quotes:    {len(p.get('grounding_quotes', []))}")
         print("  tests:")
         for t in p.get("tests", []):

@@ -3,7 +3,6 @@ import copy
 import json
 import os
 
-import pytest
 
 from p2p import checks as C
 from p2p.assemble import assemble

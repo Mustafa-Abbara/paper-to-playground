@@ -182,3 +182,14 @@ def test_invariant_still_false_after_repair_is_removed_from_the_page(tmp_path, m
     assert "wrong claim" not in page and "isFinite(out.mean)" in page        # valid invariant kept
     rev = [r for r in recs if r["action"] == "revision" and "removed from the page" in r.get("reason", "")]
     assert rev and code == 0
+
+
+def test_chart_still_empty_after_repair_is_removed(tmp_path, monkeypatch):
+    b = copy.deepcopy(BUILD_OUT)
+    b["visuals"] = [{"type": "bar", "title": "Values", "values": "state.x"},
+                    {"type": "line", "title": "Ghost", "series": [{"y": "outputs.ghost"}]}]
+    no_fix = {"reason": "try", "compute_js": COMPUTE.replace("sum / n", "(sum / n)"), "spec_patch": {}, "test_fixes": []}
+    code, recs, out, _ = run_agent(tmp_path, monkeypatch, [GOOD, b, no_fix, no_fix])
+    page = (out / "index.html").read_text("utf-8")
+    assert '"Ghost"' not in page and '"Values"' in page and code == 0
+    assert any("still empty after repair" in r.get("reason", "") for r in recs if r["action"] == "revision")

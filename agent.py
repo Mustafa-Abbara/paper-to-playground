@@ -28,7 +28,9 @@ from p2p.assemble import assemble  # noqa: E402
 from p2p.budget import Budget  # noqa: E402
 from p2p.build import BuildError, build, compose_spec  # noqa: E402
 from p2p.case import CaseError, load_case  # noqa: E402
-from p2p.checks import deterministic_fixes, run_checks, summarize  # noqa: E402
+from p2p.checks import (defaults_of, deterministic_fixes, empty_visual_indices,  # noqa: E402
+                        run_checks, summarize)
+from p2p.jsengine import ComputeRunner, load_engine  # noqa: E402
 from p2p.plan import PlanError, plan  # noqa: E402
 from p2p.repair import MAX_ROUNDS, RepairError, can_repair, needs_repair, repair  # noqa: E402
 from p2p.trace import Trace  # noqa: E402
@@ -264,6 +266,8 @@ def run(args, trace: Trace, budget: Budget, best: Best) -> int:
         current = nxt
 
     final = best.version
+    if "spec" in final:
+        final = drop_empty_visuals(case, final, trace, best)
     still_false = (final.get("facts") or {}).get("failing_invariants") or []
     if still_false and "spec" in final:
         # An invariant that is still false after repair is shown on the page as a failing
@@ -284,6 +288,36 @@ def run(args, trace: Trace, budget: Budget, best: Best) -> int:
     if args.save_intermediate and "spec" in final:
         save_json(args.output, "final.json", {"spec": final["spec"], "compute_js": final["compute_js"]})
     return EXIT_OK if not final["summary"]["critical"] else EXIT_FAIL
+
+
+def drop_empty_visuals(case, final: dict, trace, best) -> dict:
+    """A chart that would still draw nothing after repair is removed (if another chart
+    remains): an empty frame tells the learner nothing. Same rule as the page."""
+    try:
+        engine = load_engine()
+        runner = ComputeRunner(engine, final["compute_js"]) if engine else None
+        if runner is None or runner.load_error:
+            return final
+        defaults = defaults_of(final["spec"].get("controls") or [])
+        outputs = runner.run(defaults).get("outputs") or {}
+        visuals = final["spec"].get("visuals") or []
+        empty = set(empty_visual_indices(visuals, outputs, defaults))
+        keep = [v for i, v in enumerate(visuals) if i not in empty]
+        if not empty or not keep:
+            return final
+        spec2 = dict(final["spec"], visuals=keep)
+        page2 = assemble(spec2, final["compute_js"])
+        res2, facts2 = run_checks(case, final["plan"], spec2, final["compute_js"], page2)
+    except Exception as e:  # noqa: BLE001 - a cleanup step must never cost the page
+        trace.event("check", "cleanup_skipped", "info", error=f"{type(e).__name__}: {e}")
+        return final
+    titles = [str(visuals[i].get("title", f"visual {i + 1}")) for i in sorted(empty)]
+    trace.revision(final["round"], ["spec.visuals"], f"removed chart(s) still empty after repair: {titles}",
+                   kind="deterministic", before=final["summary"], after=summarize(res2))
+    final = dict(final, spec=spec2, html=page2, results=res2, facts=facts2, summary=summarize(res2))
+    best.version = final
+    best.write("empty charts removed")
+    return final
 
 
 def save_json(out_dir: str, name: str, data) -> None:
