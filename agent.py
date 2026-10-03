@@ -21,10 +21,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src
 import json  # noqa: E402
 
 from p2p import llm  # noqa: E402
-from p2p.assemble import write_page  # noqa: E402
+from p2p.assemble import assemble  # noqa: E402
 from p2p.budget import Budget  # noqa: E402
 from p2p.build import BuildError, build, compose_spec  # noqa: E402
 from p2p.case import CaseError, load_case  # noqa: E402
+from p2p.checks import deterministic_fixes, run_checks, summarize  # noqa: E402
 from p2p.plan import PlanError, plan  # noqa: E402
 from p2p.trace import Trace  # noqa: E402
 
@@ -41,6 +42,7 @@ def parse_args(argv=None):
     p.add_argument("--model", required=True, help="OpenRouter MODEL_ID")
     p.add_argument("--dry-run", action="store_true",
                    help="dev: validate input and write a placeholder page; no API calls")
+    p.add_argument("--no-checks", action="store_true", help="dev: skip the automatic checks")
     p.add_argument("--stop-after", choices=["plan", "build"],
                    help="dev: stop after this stage and save its JSON in the output folder")
     p.add_argument("--save-intermediate", action="store_true",
@@ -121,11 +123,40 @@ def run(args, trace: Trace, budget: Budget) -> int:
     if args.save_intermediate or args.stop_after:
         save_json(args.output, "build.json", {"spec": spec, "compute_js": compute_js})
 
-    # ---- ASSEMBLE -----------------------------------------------------------
-    path = write_page(args.output, spec, compute_js)
-    trace.event("output", "write_page", "ok", path=os.path.basename(path),
-                bytes=os.path.getsize(path))
-    return EXIT_OK
+    # ---- ASSEMBLE + CHECK -----------------------------------------------------
+    html = assemble(spec, compute_js)
+    if args.no_checks or args.stop_after == "build":
+        write_html(args.output, html, trace)
+        return EXIT_OK
+    results, facts = run_checks(case, the_plan, spec, compute_js, html)
+    trace.event("check", "engine", "info" if facts.get("engine") else "skip",
+                engine=facts.get("engine") or "none")
+    spec2, fixes = deterministic_fixes(case, spec, facts, the_plan)
+    if fixes:
+        for i, f in enumerate(fixes, 1):
+            trace.revision(i, f["targets"], f["reason"], kind="deterministic", before=summarize(results))
+        spec = spec2
+        html = assemble(spec, compute_js)
+        results, facts = run_checks(case, the_plan, spec, compute_js, html)
+    log_checks(trace, results)
+    write_html(args.output, html, trace)
+    s = summarize(results)
+    trace.event("check", "verdict", "ok" if not s["critical"] else "fail", **s)
+    return EXIT_OK if not s["critical"] else EXIT_FAIL
+
+
+def log_checks(trace, results) -> None:
+    for r in results:
+        trace.check(r.name, None if r.status == "skip" else r.status == "pass", r.detail,
+                    severity=r.severity, target=r.target)
+
+
+def write_html(out_dir: str, html: str, trace) -> str:
+    path = os.path.join(out_dir, "index.html")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(html)
+    trace.event("output", "write_page", "ok", path="index.html", bytes=len(html.encode("utf-8")))
+    return path
 
 
 def save_json(out_dir: str, name: str, data) -> None:
