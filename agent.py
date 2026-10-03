@@ -117,12 +117,17 @@ def write_placeholder(out_dir: str, case) -> str:
     return path
 
 
-def evaluate(case, the_plan, b, trace, round_no: int) -> dict:
+def evaluate(case, the_plan, b, trace, round_no: int, best=None) -> dict:
     """Compose -> assemble -> check -> deterministic fixes -> re-check. Logs everything."""
     spec, compute_js, notes = compose_spec(case, the_plan, b)
     for n in notes:
         trace.event("build", "normalize", "info", note=n, round=round_no)
     page = assemble(spec, compute_js)
+    if best is not None and best.version is None:
+        # safety net: a page exists on disk before any checking, whatever happens next
+        best.offer({"round": round_no, "html": page,
+                    "summary": {"critical": 99, "major": 99, "minor": 99}})
+        best.write("assembled (unchecked safety copy)")
     results, facts = run_checks(case, the_plan, spec, compute_js, page)
     if round_no == 0:
         trace.event("check", "engine", "info" if facts.get("engine") else "skip",
@@ -208,7 +213,7 @@ def run(args, trace: Trace, budget: Budget, best: Best) -> int:
         return EXIT_OK
 
     # ---- CHECK + REPAIR LOOP ------------------------------------------------
-    current = evaluate(case, the_plan, b, trace, 0)
+    current = evaluate(case, the_plan, b, trace, 0, best)
     best.offer(current)
     best.write("first checked version")   # a usable page exists from here on
     for round_no in range(1, MAX_ROUNDS + 1):

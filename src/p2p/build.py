@@ -152,15 +152,32 @@ def normalize_controls(build_controls, plan: dict, notes: list[str]) -> list[dic
         c.setdefault("label", s.get("label") or sid)
         out.append(c)
     ids = {c["id"] for c in out}
+    numeric = {c["id"] for c in out if c.get("type") in ("slider", "number")}
     for c in out:
         for k in ("length_from", "rows_from", "cols_from"):
-            if k in c and c[k] not in ids:
-                notes.append(f"control {c['id']}: dropped {k}={c[k]!r} (no such control)")
+            if k in c and c[k] not in numeric:
+                why = "no such control" if c[k] not in ids else "not a number control"
+                notes.append(f"control {c['id']}: dropped {k}={c[k]!r} ({why})")
                 del c[k]
     extra = [i for i in by_id if i not in ids]
     if extra:
         notes.append(f"dropped controls not in plan: {extra}")
     return out
+
+
+def _fix_input_refs(obj, inputs: set, notes: list):
+    """A chart pointing at "outputs.<an input>" means the input itself: use "state.<input>"."""
+    if isinstance(obj, str):
+        for k in inputs:
+            if obj == f"outputs.{k}":
+                notes.append(f"visual reference outputs.{k} -> state.{k}")
+                return f"state.{k}"
+        return obj
+    if isinstance(obj, list):
+        return [_fix_input_refs(v, inputs, notes) for v in obj]
+    if isinstance(obj, dict):
+        return {k: _fix_input_refs(v, inputs, notes) for k, v in obj.items()}
+    return obj
 
 
 def compose_spec(case, plan: dict, b: dict) -> tuple[dict, str, list[str]]:
@@ -176,6 +193,9 @@ def compose_spec(case, plan: dict, b: dict) -> tuple[dict, str, list[str]]:
     for e in explorations:
         if isinstance(e.get("preset"), dict):
             e["preset"] = {k: v for k, v in e["preset"].items() if k in ids}
+    out_keys = {o.get("key") for o in plan.get("outputs") or []}
+    visuals = _fix_input_refs([v for v in (b.get("visuals") or []) if isinstance(v, dict)][:3],
+                              ids - out_keys, notes)
     quotes = list(plan.get("grounding_quotes") or []) if case.excerpt else []
     spec = {
         "title": b.get("title") or plan.get("concept") or "Interactive explainer",
@@ -197,7 +217,7 @@ def compose_spec(case, plan: dict, b: dict) -> tuple[dict, str, list[str]]:
         },
         "controls": controls,
         "outputs": [o for o in (b.get("outputs") or []) if isinstance(o, dict)][:4],
-        "visuals": [v for v in (b.get("visuals") or []) if isinstance(v, dict)][:3],
+        "visuals": visuals,
         "invariants": [i for i in (plan.get("invariants") or []) if isinstance(i, dict)],
         "grounding": {
             "from_excerpt": quotes,

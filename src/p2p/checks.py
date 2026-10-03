@@ -143,16 +143,20 @@ def apply_bindings(state: dict, controls: list[dict], explicit: set | None = Non
                     s[c["rows_from"]] = len(v)
                 if c.get("cols_from") and c["cols_from"] not in explicit:
                     s[c["cols_from"]] = len(v[0])
+    def count(key):
+        v = s.get(key)
+        return max(1, int(round(v))) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
     for c in controls:
         fill = c.get("fill", 0) if isinstance(c.get("fill"), (int, float)) else 0
-        if c.get("type") == "vector" and c.get("length_from") in s:
-            n = max(1, int(round(float(s[c["length_from"]] or 1))))
+        if c.get("type") == "vector" and count(c.get("length_from")) is not None:
+            n = count(c["length_from"])
             v = list(s.get(c["id"]) or [])[:n]
             s[c["id"]] = v + [fill] * (n - len(v))
-        if c.get("type") == "matrix" and (c.get("rows_from") in s or c.get("cols_from") in s):
-            m = [list(r) for r in (s.get(c["id"]) or [])]
-            r = int(round(float(s[c["rows_from"]]))) if c.get("rows_from") in s else len(m)
-            k = int(round(float(s[c["cols_from"]]))) if c.get("cols_from") in s else (len(m[0]) if m else 1)
+        if c.get("type") == "matrix" and (count(c.get("rows_from")) or count(c.get("cols_from"))):
+            m = [list(r) if isinstance(r, list) else [r] for r in (s.get(c["id"]) or [])]
+            r = count(c.get("rows_from")) or len(m)
+            k = count(c.get("cols_from")) or (len(m[0]) if m else 1)
             m = m[:max(1, r)] + [[] for _ in range(max(1, r) - len(m))]
             s[c["id"]] = [row[:max(1, k)] + [fill] * (max(1, k) - len(row[:max(1, k)])) for row in m]
     return s
@@ -478,9 +482,17 @@ def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engin
 
 
 def run_checks(case, plan: dict, spec: dict, compute_js: str, html: str, engine=None):
+    """Never raises: a bug in a check is reported as a skipped check, not a crash."""
     results: list[CheckResult] = []
-    static_checks(case, spec, html, results)
-    facts = numeric_checks(plan, spec, compute_js, results, engine=engine)
+    facts = {"invalid_invariants": [], "engine": None}
+    for name, fn in (("static_checks", lambda: static_checks(case, spec, html, results)),
+                     ("numeric_checks", lambda: numeric_checks(plan, spec, compute_js, results, engine=engine))):
+        try:
+            out = fn()
+            if isinstance(out, dict):
+                facts = out
+        except Exception as e:  # noqa: BLE001 - checks must not take the run down
+            _r(results, f"{name}_error", None, "major", f"checks could not run: {type(e).__name__}: {e}")
     return results, facts
 
 

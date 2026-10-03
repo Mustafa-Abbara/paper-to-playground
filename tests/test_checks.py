@@ -188,3 +188,18 @@ def test_explicit_vector_keeps_its_length():
     assert st == {"n": 4, "p": [0.1, 0.2, 0.3, 0.4]}
     st = C.apply_bindings({"n": 3, "p": [0.5, 0.5]}, ctl)          # count changed by the learner
     assert st["p"] == [0.5, 0.5, 0]
+
+
+def test_bad_size_link_does_not_crash_the_checker():
+    ctl = [{"id": "g", "type": "vector", "default": [1, 2]}, {"id": "h", "type": "vector", "length_from": "g", "default": [0]}]
+    assert C.apply_bindings({"g": [1, 2], "h": [0]}, ctl)["h"] == [0]     # list as a count: ignored
+
+
+def test_run_checks_never_raises(monkeypatch):
+    spec, js = fixture()
+    def boom(*a, **k):
+        raise TypeError("float() argument must be a string or a real number, not 'list'")
+    monkeypatch.setattr(C, "numeric_checks", boom)
+    res, facts = C.run_checks(CASE, PLAN, spec, js, assemble(spec, js))
+    err = [r for r in res if r.name == "numeric_checks_error"][0]
+    assert err.status == "skip" and "could not run" in err.detail

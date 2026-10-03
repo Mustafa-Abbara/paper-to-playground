@@ -129,3 +129,13 @@ def test_build_prompt_is_generic():
     text = (prompts.BUILD_SYSTEM + prompts.BUILD_USER).lower()
     for word in ("attention", "entropy", "shannon", "transformer", "softmax", "arxiv"):
         assert word not in text, word
+
+
+def test_size_link_to_a_vector_is_dropped_and_input_refs_fixed():
+    b = copy.deepcopy(BUILD_OUT)
+    b["controls"][0]["length_from"] = "x"           # a vector cannot set a length
+    b["visuals"] = [{"type": "bar", "values": "outputs.x", "labels": "outputs.sorted"}]
+    spec, _, notes = compose_spec(case(), plan(), b)
+    assert "length_from" not in spec["controls"][0]
+    assert spec["visuals"][0]["values"] == "state.x" and spec["visuals"][0]["labels"] == "outputs.sorted"
+    assert any("not a number control" in n for n in notes) and any("-> state.x" in n for n in notes)

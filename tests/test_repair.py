@@ -159,3 +159,14 @@ def test_wrong_test_correction_is_rejected(tmp_path, monkeypatch):
     code, recs, _, chat = run_agent(tmp_path, monkeypatch, [plan, BUILD_OUT, bad_fix, good_fix])
     assert any(r["action"] == "test_correction_rejected" for r in recs)
     assert code == 0 and [r for r in recs if r["action"] == "verdict"][0]["major"] == 0
+
+
+def test_page_exists_even_if_checking_crashes(tmp_path, monkeypatch):
+    import agent
+    def boom(*a, **k):
+        raise RuntimeError("checker exploded")
+    monkeypatch.setattr(agent, "run_checks", boom)
+    code, recs, out, _ = run_agent(tmp_path, monkeypatch, [GOOD, BUILD_OUT])
+    assert (out / "index.html").exists()                 # the safety copy was written first
+    assert "function compute" in (out / "index.html").read_text("utf-8")
+    assert any(r["action"] == "crash" for r in recs) and recs[-1]["stage"] == "summary"
