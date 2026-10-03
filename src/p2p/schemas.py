@@ -42,7 +42,6 @@ PLAN_SCHEMA = obj({
     "tests": arr(obj({"name": S, "inputs_json": S, "expect_json": S,
                       "tol": {"type": "number"}, "why": S}), 1, 8),
     "invariants": arr(obj({"name": S, "js": S}), 1, 5),
-    "explorations": arr(obj({"change": S, "observe": S, "why": S}), 2, 2),
     "limitation": obj({"kind": {"type": "string", "enum": LIMIT_KINDS}, "text": S}),
     "simplifications": arr(S, 0, 6),
 })

@@ -291,6 +291,19 @@ def _lookup(path: str, outputs: dict, state: dict):
     return cur
 
 
+def state_reads(compute_js: str) -> set[str]:
+    """Input names compute() reads from its state parameter (static scan)."""
+    m = re.search(r"function\s+compute\s*\(\s*([A-Za-z_$][\w$]*)", compute_js or "")
+    if not m:
+        return set()
+    p = re.escape(m.group(1))
+    names = set(re.findall(rf"\b{p}\s*\.\s*([A-Za-z_$][\w$]*)", compute_js))
+    names |= set(re.findall(rf"\b{p}\s*\[\s*['\"]([^'\"]+)['\"]\s*\]", compute_js))
+    for body in re.findall(rf"(?:const|let|var)\s*\{{([^}}]*)\}}\s*=\s*{p}\b", compute_js):
+        names |= {re.split(r"[:=\s]", x.strip())[0] for x in body.split(",") if x.strip()}
+    return {n for n in names if n and n not in ("hasOwnProperty", "length")}
+
+
 def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engine=None) -> dict:
     """Runs compute(); returns facts used by deterministic fixes (e.g. invalid invariants)."""
     facts = {"invalid_invariants": [], "engine": None}
@@ -307,6 +320,11 @@ def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engin
         return facts
 
     controls = spec.get("controls") or []
+    ids = {c.get("id") for c in controls}
+    unknown = sorted(state_reads(compute_js) - ids)
+    _r(results, "compute_reads_real_inputs", not unknown, "major",
+       f"compute reads inputs that do not exist: {unknown}; the inputs are {sorted(ids)}" if unknown
+       else "every input compute reads is a control", "compute_js")
     defaults = defaults_of(controls)
     try:
         base = runner.run(defaults)
@@ -419,8 +437,12 @@ def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engin
     _r(results, "edge_inputs_no_crash", not crash, "major", "; ".join(crash[:4]) or "no exceptions", "compute_js")
     _r(results, "edge_inputs_finite", not nonfin, "major", "; ".join(nonfin[:4]) or "no NaN/Infinity",
        "compute_js")
+    broken = sorted({e.split(" @ ")[0] for e in edge_fail})
+    code_of = {(inv.get("name") or inv["js"]): inv["js"] for _, inv in live}
     _r(results, "invariants_hold", not edge_fail, "major",
-       "; ".join(edge_fail[:4]) or f"{len(live)} invariants hold on defaults and edge inputs", "compute_js")
+       ("; ".join(edge_fail[:4]) + " | invariant code: "
+        + "; ".join(f"{b}: {code_of.get(b, '')}" for b in broken[:3])) if edge_fail
+       else f"{len(live)} invariants hold on defaults and edge inputs", "compute_js|plan.invariants")
     _r(results, "controls_change_result", len(sensitive) >= 2, "major",
        f"{len(sensitive)}/{len(controls)} controls change the outputs: {sorted(sensitive)}", "compute_js")
 

@@ -33,7 +33,6 @@ GOOD = {
         {"name": "sorted", "inputs_json": "{\"x\": [3,1,2]}", "expect_json": "{\"sorted\": [1,2,3]}", "tol": 1e-9, "why": "s"},
     ],
     "invariants": [{"name": "finite", "js": "isFinite(out.mean)"}],
-    "explorations": [{"change": "a", "observe": "b", "why": "c"}] * 2,
     "limitation": {"kind": "assumption", "text": "small lists"},
     "simplifications": ["toy sizes"],
 }

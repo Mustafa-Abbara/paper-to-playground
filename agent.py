@@ -234,6 +234,8 @@ def run(args, trace: Trace, budget: Budget, best: Best) -> int:
             break
         for tc in info["test_changes"]:
             trace.event("repair", "test_corrected", "info", round=round_no, **tc)
+        for ic in info.get("invariant_changes", []):
+            trace.event("repair", "invariant_corrected", "info", round=round_no, **ic)
         nxt = evaluate(case, new_plan, new_b, trace, round_no)
         trace.revision(round_no, info["changed"], info["reason"], kind="model",
                        failures_sent=[f.name for f in failures], fields_sent=info["fields_sent"],

@@ -65,6 +65,7 @@ def test_build_prompt_hides_the_answer_key():
     for t in p["tests"]:
         assert t["expect_json"] not in sent
     assert chat.calls[0]["strict"] is False and chat.calls[0]["schema"] is BUILD_SCHEMA
+    assert "STATE KEYS (compute may read only these): x, n, mode" in sent
 
 
 def test_normalize_controls():

@@ -1,1 +1,90 @@
-PASTE THE EXCERPT HERE (replace this whole line).
+Algorithm 1: Adam, our proposed algorithm for stochastic optimization. See section 2 for details,
+and for a slightly more efficient (but less clear) order of computation. g
+2
+t
+indicates the elementwise
+square gt  gt. Good default settings for the tested machine learning problems are α = 0.001,
+β1 = 0.9, β2 = 0.999 and  = 10−8
+. All operations on vectors are element-wise. With β
+t
+1
+and β
+t
+2
+we denote β1 and β2 to the power t.
+Require: α: Stepsize
+Require: β1, β2 ∈ [0, 1): Exponential decay rates for the moment estimates
+Require: f(θ): Stochastic objective function with parameters θ
+Require: θ0: Initial parameter vector
+m0 ← 0 (Initialize 1st moment vector)
+v0 ← 0 (Initialize 2nd moment vector)
+t ← 0 (Initialize timestep)
+while θt not converged do
+t ← t + 1
+gt ← ∇θft(θt−1) (Get gradients w.r.t. stochastic objective at timestep t)
+mt ← β1 · mt−1 + (1 − β1) · gt (Update biased first moment estimate)
+vt ← β2 · vt−1 + (1 − β2) · g
+2
+t
+(Update biased second raw moment estimate)
+mb t ← mt/(1 − β
+t
+1
+) (Compute bias-corrected first moment estimate)
+vbt ← vt/(1 − β
+t
+2
+) (Compute bias-corrected second raw moment estimate)
+θt ← θt−1 − α · mb t/(
+√
+vbt + ) (Update parameters)
+end while
+return θt (Resulting parameters) 2.1 ADAM’S UPDATE RULE
+An important property of Adam’s update rule is its careful choice of stepsizes. Assuming  = 0, the
+effective step taken in parameter space at timestep t is ∆t = α · mb t/
+√
+vbt. The effective stepsize has
+two upper bounds: |∆t| ≤ α · (1 − β1)/
+√
+1 − β2 in the case (1 − β1) >
+√
+1 − β2, and |∆t| ≤ α
+2
+Published as a conference paper at ICLR 2015
+otherwise. The first case only happens in the most severe case of sparsity: when a gradient has
+been zero at all timesteps except at the current timestep. For less sparse cases, the effective stepsize
+will be smaller. When (1 − β1) = √
+1 − β2 we have that |mb t/
+√
+vbt| < 1 therefore |∆t| < α. In
+more common scenarios, we will have that mb t/
+√
+vbt ≈ ±1 since |E[g]/
+p
+E[g
+2]| ≤ 1. The effective
+magnitude of the steps taken in parameter space at each timestep are approximately bounded by
+the stepsize setting α, i.e., |∆t| / α. This can be understood as establishing a trust region around
+the current parameter value, beyond which the current gradient estimate does not provide sufficient
+information. This typically makes it relatively easy to know the right scale of α in advance. For
+many machine learning models, for instance, we often know in advance that good optima are with
+high probability within some set region in parameter space; it is not uncommon, for example, to
+have a prior distribution over the parameters. Since α sets (an upper bound of) the magnitude of
+steps in parameter space, we can often deduce the right order of magnitude of α such that optima
+can be reached from θ0 within some number of iterations. With a slight abuse of terminology,
+we will call the ratio mb t/
+√
+vbt the signal-to-noise ratio (SNR). With a smaller SNR the effective
+stepsize ∆t will be closer to zero. This is a desirable property, since a smaller SNR means that
+there is greater uncertainty about whether the direction of mb t corresponds to the direction of the true
+gradient. For example, the SNR value typically becomes closer to 0 towards an optimum, leading
+to smaller effective steps in parameter space: a form of automatic annealing. The effective stepsize
+∆t is also invariant to the scale of the gradients; rescaling the gradients g with factor c will scale mb t
+with a factor c and vbt with a factor c
+2
+, which cancel out: (c · mb t)/(
+√
+c
+2 · vbt) = mb t/
+√
+vbt.

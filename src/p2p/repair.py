@@ -31,7 +31,8 @@ TARGET_FIELDS = {"spec.visuals": ["visuals", "outputs"], "spec.controls": ["cont
 
 REPAIR_SCHEMA = {"type": "object",
                  "properties": {"reason": {"type": "string"}, "compute_js": {"type": "string"},
-                                "spec_patch": {"type": "object"}, "test_fixes": {"type": "array"}},
+                                "spec_patch": {"type": "object"}, "test_fixes": {"type": "array"},
+                                "invariant_fixes": {"type": "array"}},
                  "required": ["reason", "compute_js", "spec_patch", "test_fixes"]}
 
 
@@ -109,7 +110,21 @@ def repair(failures, plan: dict, b: dict, *, round_no: int, model: str, budget, 
             t["expect_json"] = json.dumps(exp)
     if test_changes:
         changed.append("plan.tests")
+    inv_changes = []
+    by_inv = {(i.get("name") or i.get("js")): i for i in new_plan.get("invariants") or []}
+    for fix in data.get("invariant_fixes") or []:
+        if not isinstance(fix, dict) or fix.get("name") not in by_inv:
+            continue
+        if not str(fix.get("rationale", "")).strip() or not str(fix.get("js", "")).strip():
+            continue
+        inv = by_inv[fix["name"]]
+        inv_changes.append({"invariant": fix["name"], "before": inv.get("js"), "after": fix["js"],
+                            "rationale": str(fix["rationale"])[:300]})
+        inv["js"] = str(fix["js"])
+    if inv_changes:
+        changed.append("plan.invariants")
     if not changed:
         raise RepairError("model returned no applicable change")
     return new_plan, new_b, {"reason": str(data.get("reason", ""))[:300], "changed": changed,
-                             "test_changes": test_changes, "fields_sent": ["compute_js"] + fields}
+                             "test_changes": test_changes, "invariant_changes": inv_changes,
+                             "fields_sent": ["compute_js"] + fields}

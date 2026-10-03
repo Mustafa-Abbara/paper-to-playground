@@ -135,3 +135,15 @@ def test_watchdog_writes_page_and_exits(tmp_path):
     assert r.returncode == 1                                      # no page could be produced in time
     assert any(x["action"] == "watchdog" for x in recs)
     assert recs[-1]["stage"] == "summary" and recs[-1]["note"] == "stopped by watchdog"
+
+
+def test_repair_can_correct_a_wrong_invariant_only_with_rationale():
+    p = good_plan()
+    reply = {"reason": "invariant ignores epsilon", "compute_js": "", "spec_patch": {}, "test_fixes": [],
+             "invariant_fixes": [{"name": "finite", "js": "isFinite(out.mean) || true", "rationale": "eps changes variance"},
+                                 {"name": "finite", "js": "true", "rationale": ""}]}
+    new_p, _, info = repair(FAILS, p, BUILD_OUT, round_no=1, model="m", budget=_budget(),
+                            trace=FakeTrace(), chat_fn=FakeChat([reply]))
+    assert info["changed"] == ["plan.invariants"]
+    assert new_p["invariants"][0]["js"] == "isFinite(out.mean) || true"
+    assert info["invariant_changes"][0]["before"] == "isFinite(out.mean)"

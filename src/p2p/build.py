@@ -33,7 +33,7 @@ BUILD_SCHEMA = {
     "required": BUILD_FIELDS,
 }
 PLAN_FIELDS_FOR_BUILD = ("concept", "why_it_matters", "source", "symbols", "state", "outputs",
-                         "invariants", "explorations", "limitation", "simplifications")
+                         "invariants", "limitation", "simplifications")
 KIND_TO_TYPES = {"bool": {"toggle"}, "choice": {"select"}, "vector": {"vector"},
                  "matrix": {"matrix"}, "number": {"slider", "number"},
                  "integer": {"slider", "number"}}
@@ -51,7 +51,8 @@ def plan_for_build(plan: dict) -> str:
 
 def build(case, plan: dict, *, model: str, budget, trace, chat_fn=None) -> dict:
     chat_fn = chat_fn or llm.chat
-    user = BUILD_USER.format(audience=case.audience, focus=case.focus, plan=plan_for_build(plan))
+    keys = ", ".join(str(st.get("id")) for st in plan.get("state") or [])
+    user = BUILD_USER.format(audience=case.audience, focus=case.focus, plan=plan_for_build(plan), keys=keys)
     max_tokens = BUILD_MAX_TOKENS
     last = None
     for attempt in (1, 2):

@@ -166,3 +166,17 @@ def test_no_engine_means_skip_not_pass(monkeypatch):
     assert facts["engine"] is None
     assert by["compute_loads"].status == "skip" and by["plan_tests"].status == "skip"
     assert s["skipped"] >= 5
+
+
+def test_compute_reading_a_nonexistent_input_is_flagged():
+    spec, js = fixture()
+    by, _, _ = run(spec, js)
+    assert by["compute_reads_real_inputs"].status == "pass"
+    bad = js.replace("var n = ys.length;", "var n = state.count || ys.length; var k = state['T']; var { a, zz } = state;")
+    by, _, _ = run(spec, bad)
+    r = by["compute_reads_real_inputs"]
+    assert r.failed and r.severity == "major" and "['T', 'count', 'zz']" in r.detail
+
+
+def test_state_reads_uses_the_parameter_name():
+    assert C.state_reads("function compute(s) { return s.a + s['b'] + other.c; }") == {"a", "b"}
