@@ -237,6 +237,20 @@ def run(args, trace: Trace, budget: Budget, best: Best) -> int:
         for ic in info.get("invariant_changes", []):
             trace.event("repair", "invariant_corrected", "info", round=round_no, **ic)
         nxt = evaluate(case, new_plan, new_b, trace, round_no)
+        still_failing = {r.name[5:] for r in nxt["results"] if r.name.startswith("test:") and r.failed}
+        rejected = [tc for tc in info["test_changes"] if tc["test"] in still_failing]
+        if rejected:
+            # the model claimed the test was wrong, but its corrected value does not hold either:
+            # keep the original test (verified mechanically, no extra tokens)
+            for tc in rejected:
+                for t in new_plan.get("tests") or []:
+                    if t.get("name") == tc["test"]:
+                        t["expect"], t["expect_json"] = tc["before"], json.dumps(tc["before"])
+                trace.event("repair", "test_correction_rejected", "info", round=round_no, test=tc["test"],
+                            note="corrected expectation still fails; original test kept")
+            info["changed"] = [c for c in info["changed"] if c != "plan.tests" or
+                               len(rejected) < len(info["test_changes"])]
+            nxt = evaluate(case, new_plan, new_b, trace, round_no)
         trace.revision(round_no, info["changed"], info["reason"], kind="model",
                        failures_sent=[f.name for f in failures], fields_sent=info["fields_sent"],
                        before=current["summary"], after=nxt["summary"])

@@ -127,8 +127,22 @@ def _short(v, n=90):
 
 
 # --- state construction (mirrors runtime.js bindings) ------------------------
-def apply_bindings(state: dict, controls: list[dict]) -> dict:
+def apply_bindings(state: dict, controls: list[dict], explicit: set | None = None) -> dict:
+    """Resize bound vectors/matrices like the page does. ``explicit`` = keys the caller set
+    on purpose (test inputs, presets): an explicitly given vector keeps its length and its
+    count control follows it, instead of being cut to the default count."""
     s = copy.deepcopy(state)
+    explicit = explicit or set()
+    for c in controls:
+        v = s.get(c["id"])
+        if c["id"] in explicit and isinstance(v, list) and v:
+            if c.get("type") == "vector" and c.get("length_from") and c["length_from"] not in explicit:
+                s[c["length_from"]] = len(v)
+            if c.get("type") == "matrix" and isinstance(v[0], list):
+                if c.get("rows_from") and c["rows_from"] not in explicit:
+                    s[c["rows_from"]] = len(v)
+                if c.get("cols_from") and c["cols_from"] not in explicit:
+                    s[c["cols_from"]] = len(v[0])
     for c in controls:
         fill = c.get("fill", 0) if isinstance(c.get("fill"), (int, float)) else 0
         if c.get("type") == "vector" and c.get("length_from") in s:
@@ -374,7 +388,8 @@ def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engin
     tests = plan.get("tests") or []
     per_test = []
     for t in tests:
-        st = apply_bindings({**defaults, **copy.deepcopy(t.get("inputs") or {})}, controls)
+        st = apply_bindings({**defaults, **copy.deepcopy(t.get("inputs") or {})}, controls,
+                            set(t.get("inputs") or {}))
         try:
             got = runner.run(st).get("outputs") or {}
         except JSError as e:
@@ -450,7 +465,7 @@ def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engin
     bad_ex = []
     for i, e in enumerate((spec.get("sections") or {}).get("explorations") or []):
         if isinstance(e, dict) and isinstance(e.get("preset"), dict) and e["preset"]:
-            st = apply_bindings({**defaults, **copy.deepcopy(e["preset"])}, controls)
+            st = apply_bindings({**defaults, **copy.deepcopy(e["preset"])}, controls, set(e["preset"]))
             try:
                 out = runner.run(st).get("outputs") or {}
                 if nonfinite_paths(out):

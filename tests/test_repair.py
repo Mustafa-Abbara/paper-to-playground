@@ -147,3 +147,15 @@ def test_repair_can_correct_a_wrong_invariant_only_with_rationale():
     assert info["changed"] == ["plan.invariants"]
     assert new_p["invariants"][0]["js"] == "isFinite(out.mean) || true"
     assert info["invariant_changes"][0]["before"] == "isFinite(out.mean)"
+
+
+def test_wrong_test_correction_is_rejected(tmp_path, monkeypatch):
+    plan = copy.deepcopy(GOOD)
+    plan["tests"][1]["expect_json"] = "{\"mean\": 5}"            # wrong (true mean of [4,4,4] is 4)
+    bad_fix = {"reason": "test wrong", "compute_js": "", "spec_patch": {},
+               "test_fixes": [{"name": "equal", "expect_json": "{\"mean\": 4.5}", "rationale": "miscalculated"}]}
+    good_fix = {"reason": "test wrong", "compute_js": "", "spec_patch": {},
+                "test_fixes": [{"name": "equal", "expect_json": "{\"mean\": 4}", "rationale": "(4+4+4)/3 = 4"}]}
+    code, recs, _, chat = run_agent(tmp_path, monkeypatch, [plan, BUILD_OUT, bad_fix, good_fix])
+    assert any(r["action"] == "test_correction_rejected" for r in recs)
+    assert code == 0 and [r for r in recs if r["action"] == "verdict"][0]["major"] == 0

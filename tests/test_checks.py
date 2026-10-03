@@ -180,3 +180,11 @@ def test_compute_reading_a_nonexistent_input_is_flagged():
 
 def test_state_reads_uses_the_parameter_name():
     assert C.state_reads("function compute(s) { return s.a + s['b'] + other.c; }") == {"a", "b"}
+
+
+def test_explicit_vector_keeps_its_length():
+    ctl = [{"id": "n", "type": "slider", "default": 2}, {"id": "p", "type": "vector", "length_from": "n", "default": [0.5, 0.5]}]
+    st = C.apply_bindings({"n": 2, "p": [0.1, 0.2, 0.3, 0.4]}, ctl, {"p"})
+    assert st == {"n": 4, "p": [0.1, 0.2, 0.3, 0.4]}
+    st = C.apply_bindings({"n": 3, "p": [0.5, 0.5]}, ctl)          # count changed by the learner
+    assert st["p"] == [0.5, 0.5, 0]

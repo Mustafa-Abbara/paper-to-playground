@@ -832,6 +832,16 @@
   function applyPreset(preset, n) {
     resetState(); // every exploration starts from the same known values
     Object.keys(preset).forEach(function (k) { if (k in byId) state[k] = clone(preset[k]); });
+    // an explicitly given vector/matrix keeps its size: its count controls follow it
+    CONTROLS.forEach(function (c) {
+      var v = preset[c.id];
+      if (!Array.isArray(v) || !v.length) return;
+      if (c.type === "vector" && c.length_from && !(c.length_from in preset)) state[c.length_from] = v.length;
+      if (c.type === "matrix" && Array.isArray(v[0])) {
+        if (c.rows_from && !(c.rows_from in preset)) state[c.rows_from] = v.length;
+        if (c.cols_from && !(c.cols_from in preset)) state[c.cols_from] = v[0].length;
+      }
+    });
     applyBindings();
     renderAllControls();
     update();

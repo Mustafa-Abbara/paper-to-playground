@@ -37,7 +37,7 @@ PLAN_SCHEMA = obj({
     "symbols": arr(obj({"symbol": S, "meaning": S, "shape": S}), 1, 10),
     "state": arr(obj({"id": S, "kind": {"type": "string", "enum": STATE_KINDS}, "label": S,
                       "default_json": S, "min": NUM_OR_NULL, "max": NUM_OR_NULL,
-                      "step": NUM_OR_NULL, "choices": arr(S)}), 1, 8),
+                      "step": NUM_OR_NULL, "choices": arr(S)}), 2, 8),
     "outputs": arr(obj({"key": S, "meaning": S}), 1, 12),
     "tests": arr(obj({"name": S, "inputs_json": S, "expect_json": S,
                       "tol": {"type": "number"}, "why": S}), 1, 8),
