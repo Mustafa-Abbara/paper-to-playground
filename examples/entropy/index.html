@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Entropy of a Discrete Distribution</title>
+<title>Discrete Entropy in Bits</title>
 <style>
 :root {
   --paper: #f3f5f8;
@@ -172,6 +172,10 @@ svg .prim-line.accent { stroke: var(--accent); }
 .inter td { border-top: 1px solid var(--rule); padding: .4rem .6rem .4rem 0; vertical-align: top; }
 .inter td.v { text-align: right; white-space: nowrap; font-weight: 600; border-radius: 3px; }
 .inter td.n { color: var(--muted); font-size: .85rem; }
+@media (max-width: 52rem) {
+  .inter td.v { white-space: normal; overflow-wrap: anywhere; }
+  .inter td.n { min-width: 6rem; }
+}
 .inter .mini { margin-left: auto; }
 .inter .mini td { border: 0; padding: 0 0 0 .7rem; font-weight: 600; }
 .checks { list-style: none; padding: 0; margin: .5rem 0 0; font-size: .9rem; }
@@ -251,7 +255,7 @@ main { padding-bottom: 4rem; }
         <div id="visuals"></div>
         <details class="panel" id="intermediates-panel" open>
           <summary>Step-by-step values</summary>
-          <table class="inter"><tbody id="intermediates"></tbody></table>
+          <div class="mwrap"><table class="inter"><tbody id="intermediates"></tbody></table></div>
         </details>
         <details class="panel" id="checks-panel" open>
           <summary id="checks-summary">Live checks</summary>
@@ -283,42 +287,40 @@ main { padding-bottom: 4rem; }
 
 <noscript><p class="wrap">This explainer needs JavaScript to calculate its values. Turn JavaScript on and reload the page.</p></noscript>
 
-<script type="application/json" id="spec">{"title":"Entropy of a Discrete Distribution","subtitle":"Change probabilities and outcomes to see how Shannon entropy measures average uncertainty in bits.","meta":{"paper_title":"A Mathematical Theory of Communication","section_label":"Section 6, Choice, Uncertainty and Entropy","equation_label":"Theorem 2","source_url":"https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf","audience":"engineering undergraduate"},"sections":{"idea":{"what":"Shannon entropy H is a number that measures the average uncertainty in a discrete probability distribution. For each outcome i with probability p<sub>i<\/sub>, the term −p<sub>i<\/sub> log<sub>2<\/sub> p<sub>i<\/sub> is its contribution; summing these gives H in bits. A certain outcome has H = 0, while n equally likely outcomes give H = log<sub>2<\/sub> n.","why":"Entropy sets the fundamental limit on how much a message can be compressed without loss. It also appears in statistical mechanics and machine learning as a measure of disorder or information. Knowing how probabilities shape H helps you reason about coding, data, and uncertainty."},"equation":"<math display=\"block\"><mi>H<\/mi><mo>=<\/mo><mo>−<\/mo><mi>K<\/mi><munderover><mo>∑<\/mo><mrow><mi>i<\/mi><mo>=<\/mo><mn>1<\/mn><\/mrow><mi>n<\/mi><\/munderover><msub><mi>p<\/mi><mi>i<\/mi><\/msub><msub><mo>log<\/mo><mrow><\/mrow><\/msub><msub><mi>p<\/mi><mi>i<\/mi><\/msub><\/math>","symbols":[{"symbol":"n","meaning":"number of possible outcomes","shape":"integer ≥ 2"},{"symbol":"p_i","meaning":"probability of outcome i","shape":"vector length n, entries ≥ 0, sum = 1"},{"symbol":"K","meaning":"positive constant setting the unit; K=1 for bits","shape":"scalar"},{"symbol":"H","meaning":"entropy, average uncertainty","shape":"scalar, bits when K=1 and log base 2"},{"symbol":"log","meaning":"logarithm base 2 when measuring bits","shape":"function"}],"explorations":[{"title":"Certainty gives zero bits","change":"Set Number of outcomes to 3 and make one probability 1 and the others 0.","observe":"The entropy H drops to 0 bits even though three outcomes are listed.","why":"If one outcome is certain, there is no uncertainty, so −p log₂ p is 0 for every outcome.","preset":{"n":3,"p":[1,0,0]}},{"title":"Four equally likely outcomes give two bits","change":"Set Number of outcomes to 4 and make all probabilities equal.","observe":"The entropy H becomes exactly 2 bits, matching log₂ 4.","why":"For n equally likely outcomes, H = log₂ n, the maximum possible entropy for that n.","preset":{"n":4,"p":[0.25,0.25,0.25,0.25]}}],"limitation":{"kind":"misconception","text":"Entropy is not the number of outcomes; it depends on their probabilities and is zero when one outcome is certain."}},"controls":[{"id":"n","type":"number","label":"Number of outcomes","help":"How many possible results the distribution has.","min":2,"max":6,"step":1,"default":3},{"id":"p","type":"vector","label":"Probabilities (will be normalized)","help":"Relative weights for each outcome; they are rescaled to sum to 1.","length_from":"n","normalize":true,"default":[0.5,0.3333333333333333,0.16666666666666666],"min":0,"max":1,"step":0.01}],"outputs":[{"key":"entropy_bits","label":"Entropy H","decimals":4,"unit":"bits"},{"key":"max_entropy_bits","label":"Maximum entropy log₂ n","decimals":4,"unit":"bits"}],"visuals":[{"type":"bar","title":"Normalized probabilities","caption":"Each bar is p<sub>i<\/sub> after normalization. Certainty means one bar at 1 and the rest at 0.","values":"normalized_p","labels":["1","2","3","4","5","6"],"highlight":"max","y_label":"Probability","y_min":0,"y_max":1,"decimals":3},{"type":"bar","title":"Entropy contributions −pᵢ log₂ pᵢ","caption":"Each bar is one outcome's contribution to H. Their sum is {outputs.entropy_bits:4} bits.","values":"contributions","labels":["1","2","3","4","5","6"],"highlight":"max","y_label":"Contribution (bits)","y_min":0,"y_max":1,"decimals":3}],"invariants":[{"name":"entropy nonnegative","js":"out.entropy_bits >= -1e-12"},{"name":"entropy at most log2 n","js":"out.entropy_bits <= out.max_entropy_bits + 1e-12"},{"name":"certainty implies zero entropy","js":"!out.is_certain || Math.abs(out.entropy_bits) < 1e-12"},{"name":"uniformity implies maximum entropy","js":"!out.is_uniform || Math.abs(out.entropy_bits - out.max_entropy_bits) < 1e-12"}],"grounding":{"from_excerpt":["The only H satisfying the three above assumptions is of the form: H = −K ∑ pi log pi","H = 0 if and only if all the pi but one are zero, this one having the value unity.","We shall call H = ∑ pi log pi the entropy of the set of probabilities"],"our_simplifications":["We use K=1 and log base 2 so entropy is in bits.","We normalize user probabilities automatically; Shannon assumes they already sum to 1.","We treat 0 log 0 as 0, the standard continuous limit.","If all probabilities are zero, we fall back to a uniform distribution to keep the demo defined."]}}</script>
+<script type="application/json" id="spec">{"title":"Discrete Entropy in Bits","subtitle":"Explore how uncertainty in a probability distribution becomes bits of entropy.","meta":{"paper_title":"A Mathematical Theory of Communication","section_label":"Section 6, Choice, Uncertainty and Entropy","equation_label":"","source_url":"https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf","audience":"engineering undergraduate"},"sections":{"idea":{"what":"Entropy H measures the average uncertainty in a probability distribution. For a distribution with probabilities p<sub>i<\/sub>, it is H = −Σ p<sub>i<\/sub> log<sub>2<\/sub> p<sub>i<\/sub> bits. A certain outcome gives H = 0, while n equally likely outcomes give H = log<sub>2<\/sub> n bits.","why":"Entropy sets the fundamental limit on how many bits are needed to describe outcomes. It underpins data compression, channel capacity, and statistical inference. Changing the distribution shows how bias reduces entropy even when more outcomes are possible."},"equation":"<math display=\"block\"><mi>H<\/mi><mo>=<\/mo><mo>−<\/mo><mi>K<\/mi><munderover><mo>∑<\/mo><mrow><mi>i<\/mi><mo>=<\/mo><mn>1<\/mn><\/mrow><mi>n<\/mi><\/munderover><msub><mi>p<\/mi><mi>i<\/mi><\/msub><msub><mo>log<\/mo><mn>2<\/mn><\/msub><msub><mi>p<\/mi><mi>i<\/mi><\/msub><\/math>","symbols":[{"symbol":"n","meaning":"Number of possible outcomes in the distribution.","shape":"integer, 2 to 6"},{"symbol":"p<sub>i<\/sub>","meaning":"Probability of outcome i; all p_i ≥ 0 and sum to 1.","shape":"vector of n numbers, each in [0,1]"},{"symbol":"H","meaning":"Entropy: average uncertainty or information per outcome.","shape":"scalar, bits (base-2 log)"},{"symbol":"K","meaning":"Positive constant that only chooses the unit; set K = 1 for bits.","shape":"scalar, K = 1"},{"symbol":"log","meaning":"Base-2 logarithm when H is measured in bits.","shape":"function"}],"explorations":[{"title":"Certainty gives zero bits","change":"Set n = 2 and probabilities to [1, 0].","observe":"Entropy H is 0 bits. The contribution bar for the certain outcome is 0, and the zero-probability outcome contributes 0.","why":"There is no uncertainty: the outcome is known, so no bits are needed to describe it. The term 0 log 0 is treated as 0.","preset":{"n":2,"p":[1,0]}},{"title":"Four equally likely outcomes give two bits","change":"Set n = 4 and probabilities to [0.25, 0.25, 0.25, 0.25].","observe":"Entropy H is 2 bits, equal to log₂ 4. Each outcome contributes 0.5 bits.","why":"With four equally likely outcomes, two yes/no questions (bits) are enough to identify the outcome, so the average uncertainty is 2 bits.","preset":{"n":4,"p":[0.25,0.25,0.25,0.25]}}],"limitation":{"kind":"misconception","text":"Entropy is not the number of possible outcomes; a biased distribution over many outcomes can have less entropy than a fair coin."}},"controls":[{"id":"n","type":"number","label":"Number of outcomes n","help":"How many outcomes are in the distribution.","min":2,"max":6,"step":1,"default":4},{"id":"p","type":"vector","label":"Probabilities p_i (must sum to 1)","help":"Set each outcome's probability; only first n are used.","length_from":"n","normalize":true,"default":[0.25,0.25,0.25,0.25],"min":0,"max":1,"step":0.01}],"outputs":[{"key":"entropy_bits","label":"Entropy H","decimals":3,"unit":"bits"},{"key":"max_entropy_bits","label":"Maximum entropy log₂ n","decimals":3,"unit":"bits"},{"key":"sum_p","label":"Sum of used probabilities","decimals":3,"unit":""}],"visuals":[{"type":"bar","title":"Probability distribution","caption":"Each bar is p_i for the first n outcomes. The sum is {outputs.sum_p:3}.","values":"state.p","labels":["p₁","p₂","p₃","p₄","p₅","p₆"],"highlight":"max","y_label":"Probability","y_min":0,"y_max":1,"decimals":3},{"type":"bar","title":"Entropy contributions −p_i log₂ p_i","caption":"Each bar is one outcome's contribution to H. Their sum is {outputs.entropy_bits:3} bits.","values":"outputs.contributions","labels":["i=1","i=2","i=3","i=4","i=5","i=6"],"highlight":"max","y_label":"Contribution (bits)","y_min":0,"y_max":1,"decimals":3},{"type":"line","title":"Entropy vs. number of equally likely outcomes","caption":"For a uniform distribution over n outcomes, H = log₂ n. The current n is highlighted.","series":[{"x":[2,3,4,5,6],"y":[1,1.584962500721156,2,2.321928094887362,2.584962500721156],"label":"log₂ n"}],"points":[{"x":"state.n","y":"outputs.entropy_bits","label":"current"}],"x_label":"Number of outcomes n","y_label":"Entropy (bits)"}],"invariants":[{"name":"entropy is nonnegative","js":"out.entropy_bits >= -1e-9"},{"name":"entropy never exceeds maximum","js":"out.entropy_bits <= out.max_entropy_bits + 1e-9"},{"name":"certainty implies zero entropy","js":"!out.certainty_flag || Math.abs(out.entropy_bits) < 1e-9"},{"name":"uniform implies maximum entropy","js":"!out.uniform_flag || Math.abs(out.entropy_bits - out.max_entropy_bits) < 1e-9"}],"grounding":{"from_excerpt":["The only H satisfying the three above assumptions is of the form: H = −K ∑ pi log pi","H = 0 if and only if all the pi but one are zero, this one having the value unity.","For a given n, H is a maximum and equal to logn when all the pi are equal"],"our_simplifications":["We set K = 1 and use base-2 logarithms so entropy is measured in bits.","The excerpt's equation is garbled; the standard form H = -K Σ p_i log p_i is used.","We treat 0 log 0 as 0, the standard continuous limit.","The learner's vector p is truncated to the first n entries; extra entries are ignored."]}}</script>
 <script>
 (function () {
 "use strict";
 try {
 function compute(state) {
   const n = Math.max(2, Math.min(6, Math.round(state.n)));
-  let raw = Array.isArray(state.p) ? state.p.slice(0, n) : [];
+  const raw = Array.isArray(state.p) ? state.p.slice(0, n) : [];
   while (raw.length < n) raw.push(0);
-  raw = raw.map(v => (typeof v === 'number' && isFinite(v) && v > 0) ? v : 0);
-  let sum = raw.reduce((a, b) => a + b, 0);
-  let normalized_p;
-  if (sum <= 0) {
-    normalized_p = Array(n).fill(1 / n);
-  } else {
-    normalized_p = raw.map(v => v / sum);
-  }
-  const contributions = normalized_p.map(p => p > 0 ? -p * Math.log2(p) : 0);
+  const p_used = raw.map(x => {
+    const v = Number(x);
+    return Number.isFinite(v) && v > 0 ? v : 0;
+  });
+  const sum_p = p_used.reduce((a, b) => a + b, 0);
+  const contributions = p_used.map(p => p > 0 ? -p * Math.log2(p) : 0);
   const entropy_bits = contributions.reduce((a, b) => a + b, 0);
   const max_entropy_bits = Math.log2(n);
-  const is_certain = normalized_p.some(p => Math.abs(p - 1) < 1e-12);
-  const is_uniform = normalized_p.every(p => Math.abs(p - 1 / n) < 1e-12);
+  const certainty_flag = p_used.some(p => Math.abs(p - 1) < 1e-9) && p_used.filter(p => p > 0).length === 1;
+  const uniform_flag = p_used.every(p => Math.abs(p - 1 / n) < 1e-3);
   return {
     outputs: {
-      normalized_p,
+      p_used,
+      sum_p,
       contributions,
       entropy_bits,
       max_entropy_bits,
-      is_certain,
-      is_uniform
+      certainty_flag,
+      uniform_flag
     },
     intermediates: [
-      { label: 'Number of outcomes n', value: n, note: 'size of the distribution' },
-      { label: 'Sum of raw probabilities', value: sum, note: 'used for normalization' },
-      { label: 'Entropy H', value: entropy_bits, note: 'sum of contributions, in bits' },
-      { label: 'Maximum entropy log₂ n', value: max_entropy_bits, note: 'attained when all pᵢ = 1/n' }
+      { label: 'n', value: n, note: 'number of outcomes used' },
+      { label: 'sum p_i', value: sum_p, note: 'should be 1 for a valid distribution' },
+      { label: 'H', value: entropy_bits, note: 'sum of contributions, in bits' },
+      { label: 'log₂ n', value: max_entropy_bits, note: 'maximum entropy for n outcomes' }
     ],
     checks: []
   };
@@ -406,7 +408,13 @@ function compute(state) {
   }
   var ctx = { outputs: {}, state: state };
   function resolve(ref) {
-    if (typeof ref === "string" && /^(outputs|state)\.[\w.]+$/.test(ref)) return path(ctx, ref);
+    if (typeof ref !== "string") return ref;
+    if (/^(outputs|state)\.[\w.]+$/.test(ref)) return path(ctx, ref);
+    // a bare name ("xhat") means an output of that name, else an input of that name
+    if (/^[A-Za-z_][\w]*$/.test(ref)) {
+      if (ctx.outputs && Object.prototype.hasOwnProperty.call(ctx.outputs, ref)) return ctx.outputs[ref];
+      if (Object.prototype.hasOwnProperty.call(state, ref)) return state[ref];
+    }
     return ref;
   }
   function num(ref, dflt) {
@@ -415,8 +423,14 @@ function compute(state) {
     return isNum(v) && isFinite(v) ? v : dflt;
   }
   function template(s, d) {
-    return String(s == null ? "" : s).replace(/\{((?:outputs|state)\.[\w.]+)(?::(\d))?\}/g,
-      function (_, p, dd) { return fmt(path(ctx, p), dd === undefined ? d : Number(dd)); });
+    // {outputs.key:2}, {state.id} or a bare {key} naming an output/input; other braces stay as written
+    return String(s == null ? "" : s).replace(/\{([A-Za-z_][\w]*(?:\.[\w.]+)?)(?::(\d))?\}/g,
+      function (m, p, dd) {
+        var dec = dd === undefined ? d : Number(dd);
+        if (/^(outputs|state)\./.test(p)) return fmt(path(ctx, p), dec);
+        var v = resolve(p);
+        return (typeof v === "number" || Array.isArray(v) || typeof v === "boolean") ? fmt(v, dec) : m;
+      });
   }
   function reduceMotion() {
     return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -742,13 +756,24 @@ function compute(state) {
   }
 
   function barChart(v) {
+    var autoLabels = null;
     var series = seriesList(v).map(function (s) {
       var vals = resolve(s.values || s.y || s.source);
+      if (Array.isArray(vals)) vals = vals.map(function (x) { return typeof x === "string" ? resolve(x) : x; });
+      if (Array.isArray(vals) && vals.some(Array.isArray)) {   // a matrix: one bar per cell
+        var flat = [], names = [];
+        vals.forEach(function (row, i) {
+          (Array.isArray(row) ? row : [row]).forEach(function (x, j) { flat.push(x); names.push("r" + (i + 1) + "\u00b7c" + (j + 1)); });
+        });
+        vals = flat; autoLabels = names;
+      }
       return { label: s.label, vals: Array.isArray(vals) ? vals : (isNum(vals) ? [vals] : []) };
     });
     var n = Math.max.apply(null, series.map(function (s) { return s.vals.length; }).concat([0]));
     if (!n) return frame(v.title, v.caption, el("p", { cls: "note", text: "No values to show." }));
     var labels = resolve(v.labels);
+    if (Array.isArray(labels)) labels = labels.map(function (x) { var r = resolve(x); return (typeof r === "string" || isNum(r)) ? r : x; });
+    if (autoLabels && !(Array.isArray(labels) && labels.length === n)) labels = autoLabels;
     var all = [];
     series.forEach(function (s) { s.vals.forEach(function (x) { if (isNum(x) && isFinite(x)) all.push(x); }); });
     var lo = isNum(v.y_min) ? v.y_min : Math.min(0, Math.min.apply(null, all.concat([0])));
