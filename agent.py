@@ -146,7 +146,7 @@ def evaluate(case, the_plan, b, trace, round_no: int, best=None) -> dict:
     s = summarize(results)
     trace.event("check", "summary", "ok" if not (s["critical"] or s["major"]) else "fail",
                 round=round_no, **s)
-    return {"round": round_no, "plan": the_plan, "build": b, "spec": spec,
+    return {"round": round_no, "plan": the_plan, "build": b, "spec": spec, "facts": facts,
             "compute_js": compute_js, "html": page, "results": results, "summary": s}
 
 
@@ -264,6 +264,21 @@ def run(args, trace: Trace, budget: Budget, best: Best) -> int:
         current = nxt
 
     final = best.version
+    still_false = (final.get("facts") or {}).get("failing_invariants") or []
+    if still_false and "spec" in final:
+        # An invariant that is still false after repair is shown on the page as a failing
+        # live check. Repair could not settle whether code or invariant is wrong, so the
+        # learner should not be shown it as fact: remove it from the page; the trace keeps it.
+        spec2 = dict(final["spec"])
+        spec2["invariants"] = [i for i in spec2.get("invariants") or [] if (i.get("name") or i.get("js")) not in still_false]
+        page2 = assemble(spec2, final["compute_js"])
+        res2, facts2 = run_checks(case, final["plan"], spec2, final["compute_js"], page2)
+        trace.revision(final["round"], ["spec.invariants"], f"removed from the page's live checks: {still_false} "
+                       "(still false on valid inputs after repair)", kind="deterministic",
+                       before=final["summary"], after=summarize(res2))
+        final = dict(final, spec=spec2, html=page2, results=res2, facts=facts2, summary=summarize(res2))
+        best.version = final
+        best.write("unresolved invariants removed from page")
     trace.event("check", "verdict", "ok" if not final["summary"]["critical"] else "fail",
                 final_version=final["round"], **final["summary"])
     if args.save_intermediate and "spec" in final:

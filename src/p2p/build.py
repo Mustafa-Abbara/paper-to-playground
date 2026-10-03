@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 
 from . import llm
 from .prompts import BUILD_SYSTEM, BUILD_USER, CONCISE_RETRY
@@ -180,6 +181,19 @@ def _fix_input_refs(obj, inputs: set, notes: list):
     return obj
 
 
+_SUB = re.compile(r"(?<!\w)([A-Za-z\u0370-\u03ff][\u0302\u0303\u0304]?)_(\{[^}]{1,12}\}|[A-Za-z0-9]{1,8})")
+_SUP = re.compile(r"([\w\u0370-\u03ff\)>][\u0302\u0303\u0304]?)\^(\{[^}]{1,12}\}|[A-Za-z0-9]{1,6})")
+
+
+def pretty_symbol(s) -> str:
+    """'g_t' -> g<sub>t</sub>, 'x^2' -> x<sup>2</sup>; leaves strings that already contain markup."""
+    s = str(s)
+    if "<" in s:
+        return s
+    s = _SUB.sub(lambda m: f"{m.group(1)}<sub>{m.group(2).strip('{}')}</sub>", s)
+    return _SUP.sub(lambda m: f"{m.group(1)}<sup>{m.group(2).strip('{}')}</sup>", s)
+
+
 def compose_spec(case, plan: dict, b: dict) -> tuple[dict, str, list[str]]:
     """Return (spec, compute_js, notes)."""
     notes: list[str] = []
@@ -211,7 +225,8 @@ def compose_spec(case, plan: dict, b: dict) -> tuple[dict, str, list[str]]:
             "idea": {"what": b.get("idea_what") or plan.get("concept", ""),
                      "why": b.get("idea_why") or plan.get("why_it_matters", "")},
             "equation": b.get("equation_mathml") or "",
-            "symbols": plan.get("symbols") or [],
+            "symbols": [dict(sym, symbol=pretty_symbol(sym.get("symbol", ""))) for sym in plan.get("symbols") or []
+                        if isinstance(sym, dict)],
             "explorations": explorations,
             "limitation": plan.get("limitation") or {},
         },

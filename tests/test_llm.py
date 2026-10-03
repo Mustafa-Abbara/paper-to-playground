@@ -49,6 +49,13 @@ def ok_body(content='{"x": 1}', finish="stop", completion=20, reasoning=0, usage
     return b
 
 
+@pytest.fixture(autouse=True)
+def _fresh_relaxed():
+    llm._RELAXED.clear()
+    yield
+    llm._RELAXED.clear()
+
+
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", FAKE_KEY)
@@ -98,7 +105,7 @@ def test_401_not_retried(env):
     assert ei.value.status == 401 and env[1].calls == 1 and env[2] == []
 
 
-@pytest.mark.parametrize("status", [400, 402, 403])
+@pytest.mark.parametrize("status", [402, 403])
 def test_non_transient_not_retried(env, status):
     with pytest.raises(llm.APIError):
         call(env, [Resp(status, {"error": {"code": status, "message": "x"}})])
@@ -194,6 +201,20 @@ def test_missing_key(tmp_path, monkeypatch):
     assert sess.payloads == []
 
 
-def test_unknown_model_omits_reasoning_and_plain_text_mode():
+def test_unknown_model_gets_low_reasoning_and_plain_text_mode():
     p = llm.build_payload(MSGS, model="some/other-model", max_tokens=50)
-    assert "reasoning" not in p and "response_format" not in p and "plugins" not in p
+    assert p["reasoning"] == {"effort": "low", "exclude": True}
+    assert "response_format" not in p and "plugins" not in p
+
+
+def test_parameter_rejection_falls_back_once_to_a_plain_request(env):
+    bad = Resp(400, {"error": {"code": 400, "message": "reasoning is not supported"}})
+    res, sess = call(env, [bad, Resp(200, ok_body())])
+    assert res.data == {"x": 1} and env[1].calls == 2
+    first, second = sess.payloads
+    assert "reasoning" in first and first["provider"].get("require_parameters")
+    assert "reasoning" not in second and "plugins" not in second
+    assert "require_parameters" not in second.get("provider", {})
+    assert second["response_format"]["type"] == "json_schema"      # still asks for JSON
+    with pytest.raises(llm.APIError):                                # only once per run
+        call(env, [Resp(400, {"error": {"code": 400, "message": "bad"}})])

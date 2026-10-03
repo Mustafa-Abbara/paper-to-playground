@@ -236,7 +236,8 @@
       "labels": "outputs.labels",
       "highlight": "max",
       "y_label": "y",
-      "decimals": 2
+      "decimals": 2,
+      "caption": "Slope {a} and offset {state.b}; mean {mean_y:2}; set notation {x1...m} stays."
     },
     {
       "type": "bar",

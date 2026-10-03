@@ -210,3 +210,29 @@ def test_hand_rounded_expectations_get_rounding_slack():
     assert C.close(math.log(4), 1.3863, 1e-6)            # 1.386294 rounds to 1.3863
     assert not C.close(1.3357, 1.3416, 1e-6)             # a real error is still caught
     assert not C.close(0.5000001, 0.5, 0) and C.close(0.5, 0.5, 0)   # exact values get no slack
+
+
+def test_charts_with_bare_names_draw_and_empty_charts_are_caught():
+    spec, js = fixture()
+    spec["visuals"][1]["values"] = "ys"                      # bare output name: resolves (like the page)
+    by, _, _ = run(spec, js)
+    assert by["visuals_have_data"].status == "pass"
+    spec["visuals"][1]["values"] = "no_such_key"              # would render "No values to show."
+    by, _, _ = run(spec, js)
+    r = by["visuals_have_data"]
+    assert r.failed and r.severity == "major" and "visual 2 (bar" in r.detail
+
+
+def test_resolve_ref_rule():
+    out, st = {"w": [1, 2]}, {"x": [3], "w": [9]}
+    assert C.resolve_ref("outputs.w", out, st) == [1, 2] and C.resolve_ref("w", out, st) == [1, 2]
+    assert C.resolve_ref("x", out, st) == [3] and C.resolve_ref("state.w", out, st) == [9]
+    assert C.resolve_ref("literal text", out, st) == "literal text"
+
+
+def test_failing_invariants_are_reported_in_facts():
+    spec, js = fixture()
+    plan = copy.deepcopy(PLAN)
+    plan["invariants"].append({"name": "never true", "js": "out.mean_y > 1e9"})
+    _, _, facts = run(spec, js, plan)
+    assert facts["failing_invariants"] == ["never true"]

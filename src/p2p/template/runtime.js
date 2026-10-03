@@ -76,7 +76,13 @@
   }
   var ctx = { outputs: {}, state: state };
   function resolve(ref) {
-    if (typeof ref === "string" && /^(outputs|state)\.[\w.]+$/.test(ref)) return path(ctx, ref);
+    if (typeof ref !== "string") return ref;
+    if (/^(outputs|state)\.[\w.]+$/.test(ref)) return path(ctx, ref);
+    // a bare name ("xhat") means an output of that name, else an input of that name
+    if (/^[A-Za-z_][\w]*$/.test(ref)) {
+      if (ctx.outputs && Object.prototype.hasOwnProperty.call(ctx.outputs, ref)) return ctx.outputs[ref];
+      if (Object.prototype.hasOwnProperty.call(state, ref)) return state[ref];
+    }
     return ref;
   }
   function num(ref, dflt) {
@@ -85,8 +91,14 @@
     return isNum(v) && isFinite(v) ? v : dflt;
   }
   function template(s, d) {
-    return String(s == null ? "" : s).replace(/\{((?:outputs|state)\.[\w.]+)(?::(\d))?\}/g,
-      function (_, p, dd) { return fmt(path(ctx, p), dd === undefined ? d : Number(dd)); });
+    // {outputs.key:2}, {state.id} or a bare {key} naming an output/input; other braces stay as written
+    return String(s == null ? "" : s).replace(/\{([A-Za-z_][\w]*(?:\.[\w.]+)?)(?::(\d))?\}/g,
+      function (m, p, dd) {
+        var dec = dd === undefined ? d : Number(dd);
+        if (/^(outputs|state)\./.test(p)) return fmt(path(ctx, p), dec);
+        var v = resolve(p);
+        return (typeof v === "number" || Array.isArray(v) || typeof v === "boolean") ? fmt(v, dec) : m;
+      });
   }
   function reduceMotion() {
     return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

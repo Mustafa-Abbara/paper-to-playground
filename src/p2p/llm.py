@@ -128,9 +128,16 @@ def parse_json(text: str):
     raise BadJSON("model output is not valid JSON", text=text)
 
 
+# Models for which a provider rejected an optional parameter: send a plain request instead
+# (no reasoning setting, no provider requirement, no plugin; response_format is kept).
+_RELAXED: set[str] = set()
+
+
 def build_payload(messages, *, model, max_tokens, schema=None, purpose="call",
                   settings=None, strict=True) -> dict:
-    s = settings if settings is not None else model_settings(model)
+    s = dict(settings if settings is not None else model_settings(model))
+    if model in _RELAXED:
+        s.update(reasoning=None, require_parameters=False, response_healing=False, provider={})
     body = {
         "model": model,
         "messages": messages,
@@ -256,6 +263,14 @@ def chat(messages, *, model, max_tokens, purpose, budget, trace, schema=None,
                       generation_id=gen_id, usage_missing=usage is None, **(usage or {}))
 
         if code is not None:  # error (HTTP error or error object inside a 200)
+            if code in (400, 404) and model not in _RELAXED and attempt <= MAX_RETRIES:
+                # likely an unsupported optional parameter for this model/provider:
+                # retry once with a plain request (counts as a call, like any retry)
+                _RELAXED.add(model)
+                trace.llm_call(ok=False, stage=stage, error=f"{code}: {msg}",
+                               retry_reason="compatibility fallback (optional parameters dropped)", **common)
+                last_err = APIError(f"OpenRouter error {code}: {msg}", status=code, usage=usage)
+                continue
             retry = code in RETRYABLE and attempt <= MAX_RETRIES
             trace.llm_call(ok=False, stage=stage, error=f"{code}: {msg}",
                            retry_reason=f"http {code}" if retry else None, **common)

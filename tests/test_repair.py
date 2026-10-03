@@ -170,3 +170,15 @@ def test_page_exists_even_if_checking_crashes(tmp_path, monkeypatch):
     assert (out / "index.html").exists()                 # the safety copy was written first
     assert "function compute" in (out / "index.html").read_text("utf-8")
     assert any(r["action"] == "crash" for r in recs) and recs[-1]["stage"] == "summary"
+
+
+def test_invariant_still_false_after_repair_is_removed_from_the_page(tmp_path, monkeypatch):
+    plan = copy.deepcopy(GOOD)
+    plan["invariants"].append({"name": "wrong claim", "js": "out.mean > 100"})
+    no_fix = {"reason": "cannot decide", "compute_js": COMPUTE.replace("sum / n", "(sum / n)"),
+              "spec_patch": {}, "test_fixes": []}
+    code, recs, out, _ = run_agent(tmp_path, monkeypatch, [plan, BUILD_OUT, no_fix, no_fix])
+    page = (out / "index.html").read_text("utf-8")
+    assert "wrong claim" not in page and "isFinite(out.mean)" in page        # valid invariant kept
+    rev = [r for r in recs if r["action"] == "revision" and "removed from the page" in r.get("reason", "")]
+    assert rev and code == 0

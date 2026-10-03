@@ -16,7 +16,10 @@ import copy
 DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
 
 DEFAULTS: dict = {
-    "reasoning": None,           # unknown model: do not send the parameter at all
+    # Unknown model (e.g. a different MODEL_ID supplied on assessment day): ask for low
+    # reasoning effort so hidden reasoning cannot eat the token budget. If a provider rejects
+    # any optional parameter, llm.chat falls back once to a plain request (see llm.py).
+    "reasoning": {"effort": "low", "exclude": True},
     "require_parameters": True,
     "response_healing": True,
     "temperature": 0.2,

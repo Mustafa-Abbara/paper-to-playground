@@ -139,3 +139,13 @@ def test_size_link_to_a_vector_is_dropped_and_input_refs_fixed():
     assert "length_from" not in spec["controls"][0]
     assert spec["visuals"][0]["values"] == "state.x" and spec["visuals"][0]["labels"] == "outputs.sorted"
     assert any("not a number control" in n for n in notes) and any("-> state.x" in n for n in notes)
+
+
+def test_symbols_get_sub_and_superscripts():
+    from p2p.build import pretty_symbol
+    assert pretty_symbol("g_t") == "g<sub>t</sub>"
+    assert pretty_symbol("m̂_t") == "m̂<sub>t</sub>"
+    assert pretty_symbol("β_{1}^t") == "β<sub>1</sub><sup>t</sup>"
+    assert pretty_symbol("x<sub>i</sub>") == "x<sub>i</sub>"        # already formatted: untouched
+    assert pretty_symbol("softmax") == "softmax" and pretty_symbol("d_model") == "d<sub>model</sub>"
+    assert pretty_symbol("QK^T") == "QK<sup>T</sup>" and pretty_symbol("max_entropy") == "max_entropy"

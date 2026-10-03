@@ -332,9 +332,68 @@ def state_reads(compute_js: str) -> set[str]:
     return {n for n in names if n and n not in ("hasOwnProperty", "length")}
 
 
+def resolve_ref(ref, outputs: dict, state: dict):
+    """Same rule as runtime.js: 'outputs.k' / 'state.k' paths, or a bare name meaning an
+    output of that name, else an input of that name; anything else is a literal."""
+    if not isinstance(ref, str):
+        return ref
+    if re.fullmatch(r"(outputs|state)\.[A-Za-z_][\w.]*", ref):
+        return _lookup(ref, outputs, state)
+    if re.fullmatch(r"[A-Za-z_]\w*", ref):
+        if ref in outputs:
+            return outputs[ref]
+        if ref in state:
+            return state[ref]
+    return ref
+
+
+def _finite_numbers(v) -> list:
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return [v]
+    if isinstance(v, list):
+        return [x for x in v if isinstance(x, (int, float)) and not isinstance(x, bool)]
+    return []
+
+
+def visual_data_problems(visuals: list, outputs: dict, state: dict) -> list[str]:
+    """Which visuals would render empty ('No values to show.') in the page."""
+    bad = []
+    for i, v in enumerate(visuals or []):
+        if not isinstance(v, dict):
+            continue
+        t, name = v.get("type"), f"visual {i + 1} ({v.get('type')}: {str(v.get('title', ''))[:40]})"
+        R = lambda r: resolve_ref(r, outputs, state)
+        if t == "bar":
+            series = v.get("series") or [{"values": v.get("values", v.get("source"))}]
+            ok = any(_finite_numbers(R(sv.get("values", sv.get("y", sv.get("source"))))) for sv in series if isinstance(sv, dict))
+        elif t == "line":
+            series = v.get("series") or [{"x": v.get("x"), "y": v.get("y", v.get("values"))}]
+            ok = False
+            for sv in series:
+                if not isinstance(sv, dict):
+                    continue
+                ys = R(sv.get("y", sv.get("values")))
+                xs = R(sv.get("x", v.get("x"))) if (sv.get("x") is not None or v.get("x") is not None) else None
+                if isinstance(ys, list) and _finite_numbers(ys) and (xs is None or (isinstance(xs, list) and _finite_numbers(xs))):
+                    ok = True
+            for pt in v.get("points") or []:
+                if isinstance(pt, dict) and _finite_numbers(R(pt.get("x"))) and _finite_numbers(R(pt.get("y"))):
+                    ok = True
+        elif t in ("heatmap", "matrix"):
+            d = R(v.get("values", v.get("source")))
+            ok = isinstance(d, list) and len(d) > 0
+        elif t == "svg":
+            ok = bool(v.get("items"))
+        else:
+            ok = False
+        if not ok:
+            bad.append(name)
+    return bad
+
+
 def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engine=None) -> dict:
     """Runs compute(); returns facts used by deterministic fixes (e.g. invalid invariants)."""
-    facts = {"invalid_invariants": [], "engine": None}
+    facts = {"invalid_invariants": [], "failing_invariants": [], "engine": None}
     engine = engine or load_engine()
     if engine is None:
         for n in ("compute_loads", "compute_defaults", "plan_tests", "invariants", "edge_inputs"):
@@ -378,7 +437,12 @@ def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engin
         if o.get("key") and o["key"] not in outputs:
             bad_refs.append(f"outputs.{o['key']}")
     _r(results, "visual_references", not bad_refs, "major",
-       f"missing {sorted(set(bad_refs))[:6]}" if bad_refs else "every chart and readout has data",
+       f"missing {sorted(set(bad_refs))[:6]}" if bad_refs else "every chart and readout reference resolves",
+       "spec.visuals")
+    empty = visual_data_problems(spec.get("visuals") or [], outputs, defaults)
+    _r(results, "visuals_have_data", not empty, "major",
+       f"would render empty: {empty}; data fields must name outputs as \"outputs.<key>\" "
+       f"(outputs available: {sorted(outputs)[:12]})" if empty else "every visual has data to draw",
        "spec.visuals")
 
     # invariants: compile, then classify ones that cannot be evaluated on the defaults
@@ -467,6 +531,7 @@ def numeric_checks(plan: dict, spec: dict, compute_js: str, results: list, engin
     _r(results, "edge_inputs_finite", not nonfin, "major", "; ".join(nonfin[:4]) or "no NaN/Infinity",
        "compute_js")
     broken = sorted({e.split(" @ ")[0] for e in edge_fail})
+    facts["failing_invariants"] = broken
     code_of = {(inv.get("name") or inv["js"]): inv["js"] for _, inv in live}
     _r(results, "invariants_hold", not edge_fail, "major",
        ("; ".join(edge_fail[:4]) + " | invariant code: "
