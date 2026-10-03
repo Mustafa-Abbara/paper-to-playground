@@ -1,0 +1,19 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# generated output
+out*/
+runs/
+*.log
+
+# OS
+.DS_Store

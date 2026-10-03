@@ -1,0 +1,5 @@
+# Development-only tools. NOT needed to run agent.py.
+pytest==9.1.1
+# Optional local browser smoke test (needs a separate `playwright install chromium`).
+# Never imported by agent.py. Uncomment if you want it:
+# playwright==1.63.0
