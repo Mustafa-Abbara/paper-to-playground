@@ -1,0 +1,83 @@
+{
+  "title": "A straight line, y = a·x + b",
+  "subtitle": "A neutral test fixture that exercises every widget the template offers. It is not taken from any paper.",
+  "meta": {
+    "paper_title": "Fixture: no paper",
+    "section_label": "Fixture section",
+    "equation_label": "Eq. (F1)",
+    "source_url": "about:blank",
+    "audience": "template developers"
+  },
+  "sections": {
+    "idea": {
+      "what": "<p>A line maps each input <i>x</i> to an output <i>y</i> by scaling it with a slope <i>a</i> and shifting it by an offset <i>b</i>.</p>",
+      "why": "<p>Linear maps are the simplest model of cause and effect: doubling the change in <i>x</i> doubles the change in <i>y</i>.</p>"
+    },
+    "equation": "<math display=\"block\"><mi>y</mi><mo>=</mo><mi>a</mi><mo>·</mo><mi>x</mi><mo>+</mo><mi>b</mi></math>",
+    "symbols": [
+      {"symbol": "<i>x</i>", "meaning": "an input value", "shape": "scalar"},
+      {"symbol": "<i>a</i>", "meaning": "slope: how much <i>y</i> changes per unit of <i>x</i>", "shape": "scalar"},
+      {"symbol": "<i>b</i>", "meaning": "offset: the value of <i>y</i> when <i>x</i> = 0", "shape": "scalar"},
+      {"symbol": "<i>w</i><sub>i</sub>", "meaning": "weight of sample <i>i</i> in the weighted mean", "shape": "vector, sums to 1"},
+      {"symbol": "<i>M</i>", "meaning": "a small matrix applied to the first two samples", "shape": "2 × 2"}
+    ],
+    "explorations": [
+      {
+        "title": "Flat line",
+        "change": "Set the slope <i>a</i> to 0.",
+        "observe": "Every output equals <i>b</i>; the bars become equal.",
+        "why": "With no slope, <i>x</i> no longer affects <i>y</i>.",
+        "preset": {"a": 0, "b": 1}
+      },
+      {
+        "title": "All weight on one sample",
+        "change": "Put weight 1 on the last sample and 0 elsewhere.",
+        "observe": "The weighted mean equals that sample's output.",
+        "why": "A weighted mean with a single non-zero weight just picks that value.",
+        "preset": {"n": 3, "w": [0, 0, 1]}
+      }
+    ],
+    "limitation": {
+      "kind": "misconception",
+      "text": "A line through the origin is linear, but <i>y</i> = <i>a</i>·<i>x</i> + <i>b</i> with <i>b</i> ≠ 0 is affine: doubling <i>x</i> does not double <i>y</i>."
+    }
+  },
+  "controls": [
+    {"id": "a", "type": "slider", "label": "Slope <i>a</i>", "min": -3, "max": 3, "step": 0.1, "default": 1.5, "help": "Drag to tilt the line."},
+    {"id": "b", "type": "number", "label": "Offset <i>b</i>", "min": -5, "max": 5, "step": 0.5, "default": 0.5},
+    {"id": "n", "type": "slider", "label": "Number of samples <i>n</i>", "min": 2, "max": 6, "step": 1, "default": 4},
+    {"id": "x", "type": "vector", "label": "Sample inputs <i>x</i>", "length_from": "n", "default": [-1, 0, 1, 2], "fill": 0, "labels": ["x₁", "x₂", "x₃", "x₄", "x₅", "x₆"]},
+    {"id": "w", "type": "vector", "label": "Weights <i>w</i>", "length_from": "n", "default": [0.25, 0.25, 0.25, 0.25], "fill": 0, "min": 0, "normalize": true},
+    {"id": "clip", "type": "toggle", "label": "Clip negative outputs to 0", "default": false, "help": "Shows how a non-linear step changes the picture."},
+    {"id": "range", "type": "select", "label": "Plot range", "default": "narrow", "options": [{"value": "narrow", "label": "−3 to 3"}, {"value": "wide", "label": "−10 to 10"}]},
+    {"id": "M", "type": "matrix", "label": "Matrix <i>M</i>", "default": [[1, 0.5], [0, 1]], "row_labels": ["1", "2"], "col_labels": ["1", "2"], "resizable": {"rows": [1, 3]}}
+  ],
+  "outputs": [
+    {"key": "mean_y", "label": "Mean of <i>y</i>", "decimals": 3},
+    {"key": "wmean_y", "label": "Weighted mean", "decimals": 3},
+    {"key": "max_y", "label": "Largest <i>y</i>", "decimals": 2}
+  ],
+  "visuals": [
+    {"type": "line", "title": "The line and the samples", "x_label": "x", "y_label": "y",
+     "series": [{"x": "outputs.line_x", "y": "outputs.line_y", "label": "y = a·x + b"}],
+     "points": [{"x": "outputs.x_first", "y": "outputs.y_first", "label": "first sample y = {outputs.y_first:2}"}],
+     "caption": "Tilting with <i>a</i> rotates the line; <i>b</i> shifts it up or down."},
+    {"type": "bar", "title": "Outputs per sample", "values": "outputs.ys", "labels": "outputs.labels", "highlight": "max", "y_label": "y", "decimals": 2},
+    {"type": "bar", "title": "Two series side by side", "series": [{"values": "outputs.xs", "label": "x"}, {"values": "outputs.ys", "label": "y"}], "labels": "outputs.labels", "decimals": 1},
+    {"type": "heatmap", "title": "Matrix <i>M</i>", "values": "outputs.M", "row_labels": ["r1", "r2", "r3"], "col_labels": ["c1", "c2"], "decimals": 2, "show_row_sums": true},
+    {"type": "matrix", "title": "<i>M</i> times the first two inputs", "values": "outputs.Mx", "decimals": 3},
+    {"type": "svg", "title": "One sample flowing through the map", "width": 600, "height": 120,
+     "items": [
+       {"shape": "box", "x": 20, "y": 35, "w": 120, "h": 50, "label": "x = {outputs.x_first:2}"},
+       {"shape": "arrow", "x1": 145, "y1": 60, "x2": 225, "y2": 60, "label": "× a"},
+       {"shape": "box", "x": 230, "y": 35, "w": 140, "h": 50, "label": "a·x + b", "style": "accent"},
+       {"shape": "arrow", "x1": 375, "y1": 60, "x2": 455, "y2": 60, "stroke_width": "outputs.arrow_w"},
+       {"shape": "box", "x": 460, "y": 35, "w": 120, "h": 50, "label": "y = {outputs.y_first:2}"}
+     ]}
+  ],
+  "grounding": {
+    "from_excerpt": [],
+    "our_simplifications": ["This whole page is a template fixture with made-up numbers."],
+    "no_excerpt_note": "This fixture has no excerpt; it only tests the template."
+  }
+}

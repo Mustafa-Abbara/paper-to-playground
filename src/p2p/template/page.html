@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<style>
+{{STYLE}}
+</style>
+</head>
+<body>
+<a class="skip" href="#playground">Skip to the playground</a>
+<header class="page-head wrap">
+  <h1 id="title"></h1>
+  <p class="lede" id="subtitle"></p>
+  <p class="source-line" id="source-line"></p>
+</header>
+
+<main>
+  <section id="idea" class="wrap prose" aria-labelledby="idea-h">
+    <h2 id="idea-h">The idea</h2>
+    <div id="idea-what"></div>
+    <div class="equation" id="equation" hidden>
+      <div class="eq-body" id="equation-body"></div>
+      <span class="eq-label" id="equation-label"></span>
+    </div>
+    <h3>Why it matters</h3>
+    <div id="idea-why"></div>
+  </section>
+
+  <section id="symbols" class="wrap prose" aria-labelledby="symbols-h">
+    <h2 id="symbols-h">What the symbols mean</h2>
+    <table class="symbols">
+      <thead><tr><th scope="col">Symbol</th><th scope="col">Meaning</th><th scope="col">Shape or units</th></tr></thead>
+      <tbody id="symbols-body"></tbody>
+    </table>
+  </section>
+
+  <section id="playground" class="wrap-wide" aria-labelledby="playground-h" tabindex="-1">
+    <div class="wrap-inner">
+      <h2 id="playground-h">Try it</h2>
+      <p class="pg-intro" id="playground-intro">Change the inputs on the left. Every number and picture on the right is recalculated in your browser from those inputs.</p>
+    </div>
+    <div class="bench">
+      <div class="controls" id="controls" aria-label="Inputs">
+        <div id="controls-list"></div>
+        <button type="button" class="btn quiet" id="reset">Reset to the starting values</button>
+      </div>
+      <div class="results">
+        <div class="error" id="error" role="alert" hidden></div>
+        <dl class="readout" id="readout"></dl>
+        <div id="visuals"></div>
+        <details class="panel" id="intermediates-panel" open>
+          <summary>Step-by-step values</summary>
+          <table class="inter"><tbody id="intermediates"></tbody></table>
+        </details>
+        <details class="panel" id="checks-panel" open>
+          <summary id="checks-summary">Live checks</summary>
+          <ul class="checks" id="checks"></ul>
+        </details>
+      </div>
+    </div>
+    <p class="sr-only" id="live" aria-live="polite"></p>
+  </section>
+
+  <section id="explore-1" class="wrap prose explore" aria-labelledby="explore-1-h"></section>
+  <section id="explore-2" class="wrap prose explore" aria-labelledby="explore-2-h"></section>
+
+  <section id="limitation" class="wrap prose" aria-labelledby="limitation-h">
+    <h2 id="limitation-h">A limitation</h2>
+    <div id="limitation-body"></div>
+  </section>
+
+  <section id="grounding" class="wrap prose" aria-labelledby="grounding-h">
+    <h2 id="grounding-h">Where this comes from</h2>
+    <dl class="cite" id="cite"></dl>
+    <h3>From the excerpt</h3>
+    <div id="from-excerpt"></div>
+    <h3>Our simplifications and examples</h3>
+    <ul id="our-simplifications"></ul>
+    <p class="disclaimer" id="disclaimer">This page is a small, hand-sized demonstration of one mechanism. It does not reproduce the paper's experiments or its reported results.</p>
+  </section>
+</main>
+
+<noscript><p class="wrap">This explainer needs JavaScript to calculate its values. Turn JavaScript on and reload the page.</p></noscript>
+
+<script type="application/json" id="spec">{{SPEC_JSON}}</script>
+<script>
+{{COMPUTE_JS}}
+</script>
+<script>
+{{RUNTIME_JS}}
+</script>
+</body>
+</html>
