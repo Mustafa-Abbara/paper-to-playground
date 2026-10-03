@@ -15,7 +15,8 @@ GOOD = {
     "source": {"paper_title": "Fixture", "section_label": "S1", "equation_label": "Eq. 1",
                "equation_text": "m = (1/n) sum x_i"},
     "grounding_quotes": ["the mean is the sum divided by the count"],
-    "symbols": [{"symbol": "m", "meaning": "mean", "shape": "scalar"}],
+    "symbols": [{"symbol": "m", "meaning": "mean", "shape": "scalar"},
+                {"symbol": "n", "meaning": "number of values", "shape": "integer"}],
     "state": [
         {"id": "x", "kind": "vector", "label": "values", "default_json": "[1,2,3]",
          "min": -10, "max": 10, "step": 1, "choices": []},

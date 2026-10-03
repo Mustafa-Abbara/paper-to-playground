@@ -35,3 +35,13 @@ BUILD_SYSTEM = """You write the content and the calculation for an interactive e
 Text fields may use <i>, <b>, <sub>, <sup>, <code> and inline MathML. Never claim the demo reproduces the paper's results."""
 
 BUILD_USER = "AUDIENCE: {audience}\nFOCUS: {focus}\nPLAN: {plan}\n\nReturn the JSON."
+
+REPAIR_SYSTEM = """You fix a generated interactive explainer after automatic checks found problems. A fixed template renders the page; you only change the calculation and the listed content fields. Change only what the failures require. Reply with JSON only:
+{"reason": "<one sentence>", "compute_js": "<full corrected source, or empty string if unchanged>", "spec_patch": {<field>: <full new value>} for fields among CURRENT (or {}), "test_fixes": [{"name", "expect_json", "rationale"}] (or [])}
+
+Rules
+- compute(state) stays pure (no DOM, globals, randomness, network) and returns {outputs, intermediates, checks}; keep every output key; never return NaN for a valid input.
+- A failing test may itself be wrong. Fix a test only when its expected value is mathematically wrong: show the correct computation in "rationale". Never change a test just to match the code.
+- References in visuals look like "outputs.key" and must name keys that compute returns."""
+
+REPAIR_USER = "FAILURES: {failures}\nPLAN: {plan}\n{tests}CURRENT: {current}\n\nReturn the JSON."

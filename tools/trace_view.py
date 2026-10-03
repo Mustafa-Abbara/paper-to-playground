@@ -29,20 +29,30 @@ def main() -> int:
                   f"{r.get('finish_reason') or r.get('error') or ''}")
 
     print("\nCHECKS AND FAILURES")
-    passed = [r for r in recs if r["action"].startswith("check:") and r["result"] == "ok"]
-    print(f"  {len(passed)} checks passed")
+    rounds = sorted({r.get("round", 0) for r in recs if r["action"].startswith("check:")})
+    for rd in rounds:
+        n = sum(1 for r in recs if r["action"].startswith("check:") and r["result"] == "ok"
+                and r.get("round", 0) == rd)
+        print(f"  round {rd}: {n} checks passed")
     for r in recs:
-        if r["stage"] == "summary" or r["result"] == "ok" or r["action"].startswith("call:"):
+        if r["stage"] == "summary" or r["action"] == "summary" or r["result"] == "ok" or r["action"].startswith("call:"):
             continue
         if r["action"].startswith("check:") or r["result"] == "fail":
             mark = {"fail": "FAIL", "skip": "skip"}.get(r["result"], r["result"])
             sev = f"[{r['severity']}]" if r.get("severity") else ""
+            sev = (f"r{r['round']} " if "round" in r else "") + sev
             print(f"  {mark:4} {sev:10} {r['stage']}/{r['action']}: {str(r.get('detail') or r.get('error') or '')[:150]}")
     for r in recs:
         if r["action"] == "revision":
-            print(f"  REVISION ({r.get('kind', 'model')}): {r.get('targets')} - {r.get('reason')}")
+            ba = ""
+            if r.get("before") and r.get("after"):
+                b, a = r["before"], r["after"]
+                ba = f"  [crit/major/minor {b['critical']}/{b['major']}/{b['minor']} -> {a['critical']}/{a['major']}/{a['minor']}]"
+            print(f"  REVISION r{r.get('round')} ({r.get('kind', 'model')}): {r.get('targets')} - {r.get('reason')}{ba}")
+        if r["action"] == "test_corrected":
+            print(f"  TEST CORRECTED {r.get('test')}: {r.get('before')} -> {r.get('after')} because {r.get('rationale')}")
         if r["action"] == "verdict":
-            print(f"  VERDICT: critical={r.get('critical')} major={r.get('major')} minor={r.get('minor')}")
+            print(f"  VERDICT (version {r.get('final_version')}): critical={r.get('critical')} major={r.get('major')} minor={r.get('minor')}")
 
     plan_path = os.path.join(folder, "plan.json") if os.path.isdir(folder) else None
     if plan_path and os.path.exists(plan_path):
