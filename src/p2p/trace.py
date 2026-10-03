@@ -24,7 +24,7 @@ LLM_FIELDS = (
     "call_index", "purpose", "model", "prompt_tokens", "completion_tokens",
     "reasoning_tokens", "cached_tokens", "total_tokens", "elapsed_s", "finish_reason",
     "generation_id", "http_status", "attempt", "retry_reason", "max_tokens",
-    "prompt_chars", "prompt_sha256", "usage_missing", "error",
+    "prompt_chars", "prompt_sha256", "usage_missing", "error", "cost",
 )
 
 

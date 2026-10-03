@@ -31,6 +31,12 @@ Exit codes: 0 success, 1 generation failed, 2 bad input/usage.
   no `@import`, no external URLs (the only URL allowed is `source_url` shown as plain text).
 - The trace never contains message bodies, model reasoning, or credentials.
 
+## Model
+MODEL_ID: deepseek/deepseek-v4.1-flash (the model the course supplies for assessment).
+Per-model request settings live ONLY in `src/p2p/config.py`, keyed by MODEL_ID.
+Measure a model with `python tools/ping.py --model <id>` before changing its settings.
+All network traffic goes through `src/p2p/llm.py::chat()`.
+
 ## Integrity rules
 - Generic templates and generic widgets only. NO paper-specific code paths
   (e.g. `if "attention" in focus`), no stored pages/answers, no lookup tables keyed on
