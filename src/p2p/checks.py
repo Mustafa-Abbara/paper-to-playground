@@ -236,8 +236,11 @@ def static_checks(case, spec: dict, html: str, results: list):
     _r(results, "grounding_simplifications", bool(gr.get("our_simplifications")), "major",
        f"{len(gr.get('our_simplifications') or [])} listed", "spec.grounding")
     meta = spec.get("meta") or {}
-    _r(results, "grounding_citation", bool(meta.get("paper_title") or meta.get("section_label")), "major",
-       f"{meta.get('paper_title', '')} | {meta.get('section_label', '')} | {meta.get('equation_label', '')}",
+    citable = bool(case.excerpt or case.get("title") or case.get("section"))
+    has_cite = bool(meta.get("paper_title") or meta.get("section_label"))
+    _r(results, "grounding_citation", has_cite if citable or has_cite else None, "major",
+       f"{meta.get('paper_title', '')} | {meta.get('section_label', '')} | {meta.get('equation_label', '')}"
+       if citable or has_cite else "input names no paper, section or excerpt: only the source URL is cited",
        "spec.meta")
     quotes = gr.get("from_excerpt") or []
     if not case.excerpt:

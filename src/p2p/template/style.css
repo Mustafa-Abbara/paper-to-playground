@@ -86,7 +86,8 @@ table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 24px 24px;
 }
-@media (max-width: 52rem) { .bench { grid-template-columns: 1fr; padding: .85rem; } }
+@media (max-width: 52rem) { .bench { grid-template-columns: minmax(0, 1fr); padding: .85rem; } }
+.bench > * { min-width: 0; }
 .controls, .results > * { background: var(--sheet); }
 .controls { padding: 1rem; border: 1px solid var(--rule); border-radius: 4px; align-self: start; }
 @media (min-width: 52rem) { .controls { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; } }

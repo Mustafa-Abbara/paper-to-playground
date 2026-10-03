@@ -152,6 +152,11 @@ def test_missing_sections_and_no_excerpt_skip():
     by, _, _ = run(spec, js, case=Case(source_url="about:blank", focus="f", audience="a"))
     assert by["section_explorations"].failed and by["section_limitation"].failed
     assert by["grounding_quotes_verbatim"].status == "skip"     # never reported as pass
+    spec["meta"] = {"source_url": "about:blank"}
+    by, _, _ = run(spec, js, case=Case(source_url="about:blank", focus="f", audience="a"))
+    assert by["grounding_citation"].status == "skip"
+    by, _, _ = run(spec, js)                                    # excerpt given -> citation required
+    assert by["grounding_citation"].failed
 
 
 def test_no_engine_means_skip_not_pass(monkeypatch):
