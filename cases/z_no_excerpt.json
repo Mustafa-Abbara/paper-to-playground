@@ -1,0 +1,7 @@
+{
+ "source_url": "https://example.org/no-excerpt-case",
+ "focus": "Explain how the arithmetic mean and the median of a small list of numbers respond to one extreme value. Let the learner edit up to 7 values. Show the sorted list, the mean and the median. Check that the mean of equal values equals that value and that the median of an odd-length list is its middle sorted element.",
+ "audience": "first-year engineering student",
+ "notes": "Deliberately awkward practice case: no excerpt, an unknown extra field, and a non-string field.",
+ "difficulty": 2
+}

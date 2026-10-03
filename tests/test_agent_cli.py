@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -45,8 +46,13 @@ def test_bad_usage_exits_2():
     assert run("--input", "x").returncode == 2
 
 
-def test_without_dry_run_exits_1_for_now(tmp_path):
+def test_missing_key_exits_1_without_network(tmp_path):
     case = tmp_path / "c.json"
     case.write_text(json.dumps({"source_url": "u", "focus": "f", "audience": "a"}))
-    r = run("--input", str(case), "--output", str(tmp_path / "o"), "--model", "m")
-    assert r.returncode == 1
+    env = {k: v for k, v in os.environ.items() if k != "OPENROUTER_API_KEY"}
+    out = tmp_path / "o"
+    r = run("--input", str(case), "--output", str(out), "--model", "m", env=env)
+    assert r.returncode == 1 and "OPENROUTER_API_KEY" in r.stderr
+    recs = read_trace(out)
+    assert any(x["action"] == "missing_key" and x["result"] == "fail" for x in recs)
+    assert recs[-1]["calls"] == 0

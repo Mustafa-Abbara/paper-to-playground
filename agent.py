@@ -18,8 +18,12 @@ import sys  # noqa: E402
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 
+import json  # noqa: E402
+
+from p2p import llm  # noqa: E402
 from p2p.budget import Budget  # noqa: E402
 from p2p.case import CaseError, load_case  # noqa: E402
+from p2p.plan import PlanError, plan  # noqa: E402
 from p2p.trace import Trace  # noqa: E402
 
 EXIT_OK, EXIT_FAIL, EXIT_USAGE = 0, 1, 2
@@ -35,6 +39,10 @@ def parse_args(argv=None):
     p.add_argument("--model", required=True, help="OpenRouter MODEL_ID")
     p.add_argument("--dry-run", action="store_true",
                    help="dev: validate input and write a placeholder page; no API calls")
+    p.add_argument("--stop-after", choices=["plan"],
+                   help="dev: stop after this stage and save its JSON in the output folder")
+    p.add_argument("--save-intermediate", action="store_true",
+                   help="dev: also save plan.json (and later build.json) in the output folder")
     return p.parse_args(argv)
 
 
@@ -81,9 +89,31 @@ def run(args, trace: Trace, budget: Budget) -> int:
         trace.event("output", "write_placeholder", "ok", path=os.path.basename(path))
         return EXIT_OK
 
-    trace.event("generate", "not_implemented", "fail", note="generation arrives in later stages")
-    print("agent: generation not implemented yet (use --dry-run)", file=sys.stderr)
+    # ---- PLAN ---------------------------------------------------------------
+    try:
+        the_plan, problems = plan(case, model=args.model, budget=budget, trace=trace)
+    except llm.MissingKey as e:
+        trace.event("plan", "missing_key", "fail", error=str(e))
+        print(f"agent: {e}", file=sys.stderr)
+        return EXIT_FAIL
+    except PlanError as e:
+        trace.event("plan", "plan_failed", "fail", error=str(e))
+        print(f"agent: {e}", file=sys.stderr)
+        return EXIT_FAIL
+    if args.save_intermediate or args.stop_after:
+        save_json(args.output, "plan.json", the_plan)
+    if args.stop_after == "plan":
+        trace.event("plan", "stop_after", "info", problems=len(problems))
+        return EXIT_OK
+
+    trace.event("generate", "not_implemented", "fail", note="build stage arrives in Stage 5")
+    print("agent: build stage not implemented yet (use --stop-after plan)", file=sys.stderr)
     return EXIT_FAIL
+
+
+def save_json(out_dir: str, name: str, data) -> None:
+    with open(os.path.join(out_dir, name), "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
 
 
 def main(argv=None) -> int:
