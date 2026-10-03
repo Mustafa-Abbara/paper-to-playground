@@ -157,3 +157,10 @@ def test_schema_requires_an_invariant():
     bad = copy.deepcopy(GOOD)
     bad["invariants"] = []
     assert any("invariants" in e for e in validate(bad, PLAN_SCHEMA))
+
+
+def test_invariant_with_undeclared_output_is_flagged():
+    bad = copy.deepcopy(GOOD)
+    bad["invariants"] = [{"name": "uses raw", "js": "out.raw_scores.length > 0 && out.mean > 0"}]
+    _, problems = normalize(bad)
+    assert any("undeclared outputs ['raw_scores']" in p for p in problems)

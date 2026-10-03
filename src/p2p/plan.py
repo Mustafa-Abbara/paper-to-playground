@@ -110,6 +110,11 @@ def normalize(plan: dict) -> tuple[dict, list[str]]:
         t["expect"] = expect or {}
         if not _is_num(t.get("tol")) or t["tol"] <= 0:
             t["tol"] = 1e-6
+    for inv in plan.get("invariants") or []:
+        used = set(re.findall(r"\bout\.([A-Za-z_][A-Za-z0-9_]*)", str(inv.get("js", ""))))
+        unknown = sorted(used - set(out_keys))
+        if unknown:
+            problems.append(f"invariant {inv.get('name', '?')!r} uses undeclared outputs {unknown}")
     plan["defaults"] = defaults
     return plan, problems
 
