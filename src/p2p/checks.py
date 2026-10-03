@@ -110,11 +110,21 @@ def nonfinite_paths(obj, path="") -> list[str]:
     return []
 
 
+def _rounding_slack(exp: float) -> float:
+    """Half a unit in the last written decimal of a hand-rounded expectation (1.3863 -> 5e-5).
+    Only for values written with 1-5 decimals; exact values (0, 1, 2.5) get no slack."""
+    text = repr(float(exp))
+    if "e" in text or "." not in text:
+        return 0.0
+    d = len(text.split(".")[1].rstrip("0"))
+    return 0.5 * 10 ** -d + 1e-12 if 1 <= d <= 5 and exp != round(exp, 1) else 0.0
+
+
 def close(got, exp, tol) -> bool:
     if isinstance(exp, bool) or isinstance(got, bool):
         return got == exp
     if isinstance(exp, (int, float)):
-        return isinstance(got, (int, float)) and abs(got - exp) <= tol
+        return isinstance(got, (int, float)) and abs(got - exp) <= max(tol, _rounding_slack(exp))
     if isinstance(exp, list):
         return isinstance(got, list) and len(got) == len(exp) and all(close(g, e, tol) for g, e in zip(got, exp))
     return got == exp

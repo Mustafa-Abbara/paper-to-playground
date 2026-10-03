@@ -203,3 +203,10 @@ def test_run_checks_never_raises(monkeypatch):
     res, facts = C.run_checks(CASE, PLAN, spec, js, assemble(spec, js))
     err = [r for r in res if r.name == "numeric_checks_error"][0]
     assert err.status == "skip" and "could not run" in err.detail
+
+
+def test_hand_rounded_expectations_get_rounding_slack():
+    import math
+    assert C.close(math.log(4), 1.3863, 1e-6)            # 1.386294 rounds to 1.3863
+    assert not C.close(1.3357, 1.3416, 1e-6)             # a real error is still caught
+    assert not C.close(0.5000001, 0.5, 0) and C.close(0.5, 0.5, 0)   # exact values get no slack
