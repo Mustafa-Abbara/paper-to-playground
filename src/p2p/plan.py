@@ -14,8 +14,8 @@ from . import llm
 from .prompts import CONCISE_RETRY, PLAN_SYSTEM, PLAN_USER
 from .schemas import PLAN_SCHEMA, validate
 
-PLAN_MAX_TOKENS = 1800
-RETRY_EXTRA_TOKENS = 1000
+PLAN_MAX_TOKENS = 3200   # a cap, not a cost: we pay only for tokens produced
+RETRY_EXTRA_TOKENS = 800
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
@@ -36,7 +36,8 @@ def _is_num(x):
 
 
 def _numeric_tree(x):
-    if _is_num(x):
+    """Expected values: numbers, booleans, or (nested) arrays of them."""
+    if _is_num(x) or isinstance(x, bool):
         return True
     return isinstance(x, list) and len(x) > 0 and all(_numeric_tree(v) for v in x)
 
@@ -104,7 +105,7 @@ def normalize(plan: dict) -> tuple[dict, list[str]]:
             if k not in out_keys:
                 problems.append(f"tests[{name}]: unknown output {k!r}")
             if not _numeric_tree(v):
-                problems.append(f"tests[{name}]: expected {k} is not a number or numeric array")
+                problems.append(f"tests[{name}]: expected {k} is not a number, boolean or array of them")
         t["inputs"] = inputs or {}
         t["expect"] = expect or {}
         if not _is_num(t.get("tol")) or t["tol"] <= 0:

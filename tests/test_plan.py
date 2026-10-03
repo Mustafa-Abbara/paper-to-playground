@@ -140,3 +140,20 @@ def test_prompts_are_generic():
     text = (prompts.PLAN_SYSTEM + prompts.PLAN_USER).lower()
     for word in ("attention", "entropy", "shannon", "transformer", "softmax", "arxiv"):
         assert word not in text, word
+
+
+def test_boolean_expectations_allowed():
+    ok = copy.deepcopy(GOOD)
+    ok["outputs"].append({"key": "is_flat", "meaning": "all equal"})
+    ok["tests"][1]["expect_json"] = "{\"mean\": 4, \"is_flat\": true}"
+    _, problems = normalize(ok)
+    assert problems == []
+    ok["tests"][1]["expect_json"] = "{\"is_flat\": \"yes\"}"
+    _, problems = normalize(ok)
+    assert any("not a number, boolean" in p for p in problems)
+
+
+def test_schema_requires_an_invariant():
+    bad = copy.deepcopy(GOOD)
+    bad["invariants"] = []
+    assert any("invariants" in e for e in validate(bad, PLAN_SCHEMA))

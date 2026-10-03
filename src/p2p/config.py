@@ -28,7 +28,11 @@ MODELS: dict[str, dict] = {
     # hidden "thinking" tokens are billed against the 30k completion budget.
     # Re-verify with: python tools/ping.py --model deepseek/deepseek-v4.1-flash
     "deepseek/deepseek-v4.1-flash": {
+        # Measured with tools/ping.py: provider default spends ~130 hidden reasoning
+        # tokens on a trivial question; effort "none" uses 0 with the same answer.
         "reasoning": {"effort": "none"},
+        # Providers differ a lot in speed (25 vs 146 tok/s observed). Prefer fast ones.
+        "provider": {"sort": "throughput"},
     },
 }
 

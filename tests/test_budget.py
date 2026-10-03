@@ -1,3 +1,5 @@
+import time
+
 from p2p.budget import Budget
 
 
@@ -23,7 +25,7 @@ def test_every_attempt_counts_even_without_usage():
 
 
 def test_deadline():
-    b = Budget(t0=0.0)  # pretend the process started long ago
+    b = Budget(t0=time.monotonic() - 1000)  # pretend the process started 1000 s ago
     assert b.time_left() < 0
     assert not b.can_call()
     assert b.hard_exceeded()
