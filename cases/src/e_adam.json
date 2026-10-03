@@ -1,0 +1,7 @@
+{
+ "source_url": "https://arxiv.org/abs/1412.6980",
+ "title": "Adam: A Method for Stochastic Optimization",
+ "section": "Section 2, Algorithm 1",
+ "focus": "Explain the Adam update for a single parameter over a short sequence of gradients. Let the learner edit the gradients, beta1, beta2, the step size alpha and epsilon. Show the first and second moment estimates, their bias-corrected versions and the update at each step. Check that at step 1 the bias-corrected first moment equals the gradient, that the bias-corrected second moment equals the squared gradient, and that the size of each update is at most about alpha when epsilon is small.",
+ "audience": "engineering undergraduate"
+}

@@ -204,12 +204,18 @@ NETWORK_PATTERNS = [
 ]
 
 
-def static_checks(case, spec: dict, html: str, results: list):
-    # offline
+def network_findings(html: str, source_url: str = "") -> tuple[list[str], list[str]]:
+    """(network constructs found, URLs other than the SVG namespace and the source URL)."""
     found = [label for pat, label in NETWORK_PATTERNS if re.search(pat, html, re.I)]
     urls = set(re.findall(r"https?://[^\s\"'<>)\\]+", html))
-    allowed = {SVG_NS, case.source_url.rstrip("\\")}
-    stray = sorted(u for u in urls if u not in allowed and not case.source_url.startswith(u))
+    allowed = {SVG_NS, source_url.rstrip("\\")}
+    stray = sorted(u for u in urls if u not in allowed and not (source_url and source_url.startswith(u)))
+    return found, stray
+
+
+def static_checks(case, spec: dict, html: str, results: list):
+    # offline
+    found, stray = network_findings(html, case.source_url)
     _r(results, "offline_no_network", not found and not stray, "critical",
        "; ".join(found + [f"URL {u}" for u in stray[:5]]) or "no network APIs or external URLs",
        "compute_js" if found else "spec")

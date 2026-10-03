@@ -1,0 +1,7 @@
+{
+ "source_url": "https://arxiv.org/abs/1502.03167",
+ "title": "Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift",
+ "section": "Section 3, Algorithm 1 (Batch Normalizing Transform)",
+ "focus": "Explain the batch normalizing transform for one activation over a small mini-batch. Let the learner edit the mini-batch values, epsilon, and the scale gamma and shift beta. Show the mini-batch mean, the variance, the normalized values and the outputs. Check that the normalized values have mean zero, that gamma = 1 and beta = 0 leave the normalized values unchanged, and that a batch of identical values gives all-zero normalized values.",
+ "audience": "engineering undergraduate"
+}

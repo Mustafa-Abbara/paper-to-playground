@@ -1,0 +1,7 @@
+{
+ "source_url": "https://arxiv.org/abs/1503.02531",
+ "title": "Distilling the Knowledge in a Neural Network",
+ "section": "Section 2, Distillation",
+ "focus": "Explain how the temperature T in a softmax turns logits into probabilities, q_i = exp(z_i/T) / sum_j exp(z_j/T). Let the learner edit a small vector of logits and change T. Show the scaled logits, the probabilities and how spread out they are. Compare T = 1 with a high and a low temperature. Check that the probabilities sum to one, that equal logits give a uniform distribution for every T, and that the order of the probabilities matches the order of the logits.",
+ "audience": "engineering undergraduate"
+}
