@@ -49,7 +49,7 @@ SAFE_ATTR_VALUE = re.compile(r"^[A-Za-z0-9 .\-%]{1,40}$")
 RAW_KEYS = {"id", "key", "type", "source", "value", "values", "default", "preset", "x", "y",
             "x1", "y1", "x2", "y2", "w", "h", "r", "width", "height", "rows_from", "cols_from",
             "length_from", "shape", "kind", "scale", "style", "anchor", "highlight",
-            "stroke_width", "size", "dx", "dy", "series_key", "fill", "source_url"}
+            "stroke_width", "size", "dx", "dy", "series_key", "fill", "source_url", "js"}
 RAW_SUBTREES = {"preset", "default"}
 
 

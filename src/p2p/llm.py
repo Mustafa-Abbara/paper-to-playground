@@ -129,7 +129,7 @@ def parse_json(text: str):
 
 
 def build_payload(messages, *, model, max_tokens, schema=None, purpose="call",
-                  settings=None) -> dict:
+                  settings=None, strict=True) -> dict:
     s = settings if settings is not None else model_settings(model)
     body = {
         "model": model,
@@ -145,7 +145,7 @@ def build_payload(messages, *, model, max_tokens, schema=None, purpose="call",
         body["response_format"] = {
             "type": "json_schema",
             "json_schema": {"name": re.sub(r"[^A-Za-z0-9_-]", "_", purpose)[:64],
-                            "strict": True, "schema": schema},
+                            "strict": bool(strict), "schema": schema},
         }
         if s.get("require_parameters", True):
             provider["require_parameters"] = True
@@ -201,7 +201,8 @@ def _default_session():
 
 # --- main entry -------------------------------------------------------------
 def chat(messages, *, model, max_tokens, purpose, budget, trace, schema=None,
-         stage="llm", session=None, sleep=time.sleep, settings=None) -> LLMResult:
+         stage="llm", session=None, sleep=time.sleep, settings=None,
+         strict=True) -> LLMResult:
     key = get_api_key()
     session = session or _default_session()
     headers = {
@@ -223,7 +224,7 @@ def chat(messages, *, model, max_tokens, purpose, budget, trace, schema=None,
             raise last_err or BudgetExhausted("budget exhausted before call")
 
         payload = build_payload(messages, model=model, max_tokens=mt, schema=schema,
-                                purpose=purpose, settings=settings)
+                                purpose=purpose, settings=settings, strict=strict)
         base = dict(call_index=budget.calls + 1, purpose=purpose, model=model,
                     attempt=attempt, max_tokens=mt, **fp)
         t = time.monotonic()

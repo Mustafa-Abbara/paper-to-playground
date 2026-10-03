@@ -21,7 +21,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src
 import json  # noqa: E402
 
 from p2p import llm  # noqa: E402
+from p2p.assemble import write_page  # noqa: E402
 from p2p.budget import Budget  # noqa: E402
+from p2p.build import BuildError, build, compose_spec  # noqa: E402
 from p2p.case import CaseError, load_case  # noqa: E402
 from p2p.plan import PlanError, plan  # noqa: E402
 from p2p.trace import Trace  # noqa: E402
@@ -39,7 +41,7 @@ def parse_args(argv=None):
     p.add_argument("--model", required=True, help="OpenRouter MODEL_ID")
     p.add_argument("--dry-run", action="store_true",
                    help="dev: validate input and write a placeholder page; no API calls")
-    p.add_argument("--stop-after", choices=["plan"],
+    p.add_argument("--stop-after", choices=["plan", "build"],
                    help="dev: stop after this stage and save its JSON in the output folder")
     p.add_argument("--save-intermediate", action="store_true",
                    help="dev: also save plan.json (and later build.json) in the output folder")
@@ -106,9 +108,24 @@ def run(args, trace: Trace, budget: Budget) -> int:
         trace.event("plan", "stop_after", "info", problems=len(problems))
         return EXIT_OK
 
-    trace.event("generate", "not_implemented", "fail", note="build stage arrives in Stage 5")
-    print("agent: build stage not implemented yet (use --stop-after plan)", file=sys.stderr)
-    return EXIT_FAIL
+    # ---- BUILD --------------------------------------------------------------
+    try:
+        b = build(case, the_plan, model=args.model, budget=budget, trace=trace)
+    except BuildError as e:
+        trace.event("build", "build_failed", "fail", error=str(e))
+        print(f"agent: {e}", file=sys.stderr)
+        return EXIT_FAIL
+    spec, compute_js, notes = compose_spec(case, the_plan, b)
+    for n in notes:
+        trace.event("build", "normalize", "info", note=n)
+    if args.save_intermediate or args.stop_after:
+        save_json(args.output, "build.json", {"spec": spec, "compute_js": compute_js})
+
+    # ---- ASSEMBLE -----------------------------------------------------------
+    path = write_page(args.output, spec, compute_js)
+    trace.event("output", "write_page", "ok", path=os.path.basename(path),
+                bytes=os.path.getsize(path))
+    return EXIT_OK
 
 
 def save_json(out_dir: str, name: str, data) -> None:

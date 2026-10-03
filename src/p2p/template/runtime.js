@@ -12,6 +12,12 @@
   var computeLoadError = window.__P2P_COMPUTE_ERROR || null;
 
   var CONTROLS = Array.isArray(SPEC.controls) ? SPEC.controls : [];
+  // Invariants from the plan: boolean expressions over out (outputs) and s (state).
+  var INVARIANTS = (Array.isArray(SPEC.invariants) ? SPEC.invariants : []).map(function (inv) {
+    var fn = null;
+    try { fn = new Function("out", "s", '"use strict"; return (' + String(inv.js) + ");"); } catch (e) { fn = null; }
+    return { label: inv.name || String(inv.js), fn: fn };
+  });
   var byId = {};
   CONTROLS.forEach(function (c) { if (c && c.id) byId[c.id] = c; });
   var state = {};
@@ -734,7 +740,16 @@
     renderReadout(ctx.outputs);
     renderVisuals();
     renderIntermediates(res.intermediates);
-    renderChecks(res.checks);
+    var checks = Array.isArray(res.checks) ? res.checks.slice() : [];
+    INVARIANTS.forEach(function (inv) {
+      var ok = false, detail = "";
+      if (!inv.fn) detail = "could not be read";
+      else {
+        try { ok = !!inv.fn(ctx.outputs, clone(state)); } catch (e) { detail = "could not be evaluated"; }
+      }
+      checks.push({ label: inv.label, pass: ok, detail: detail });
+    });
+    renderChecks(checks);
     CONTROLS.forEach(function (c) {
       if (c.type === "vector" && (c.normalize || c.show_sum)) {
         var n = $("sum-" + c.id); if (!n) return;
