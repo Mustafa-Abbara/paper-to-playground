@@ -236,3 +236,16 @@ def test_failing_invariants_are_reported_in_facts():
     plan["invariants"].append({"name": "never true", "js": "out.mean_y > 1e9"})
     _, _, facts = run(spec, js, plan)
     assert facts["failing_invariants"] == ["never true"]
+
+
+def test_chart_shapes_the_page_can_draw():
+    out, st = {"S": [[1, 0], [0, 1]], "h": 1.5, "hmax": 2, "ys": [1, 2, 3]}, {"T": 1}
+    assert C.visual_data_problems([{"type": "bar", "values": "outputs.S"}], out, st) == []        # matrix
+    assert C.visual_data_problems([{"type": "bar", "values": ["h", "hmax"]}], out, st) == []      # list of names
+    assert C.visual_data_problems([{"type": "line", "series": [{"x": "state.T", "y": "ys"}]}], out, st) == []
+    assert C.visual_data_problems([{"type": "bar", "values": ["nope"]}], out, st) != []
+
+
+def test_truncated_expectation_is_accepted():
+    assert C.close(0.6697615, 0.6697, 1e-6) and C.close(0.6697615, 0.6698, 1e-6)
+    assert not C.close(0.6697615, 0.6680, 1e-6)       # 0.668: off by more than 1e-3

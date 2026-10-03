@@ -111,13 +111,14 @@ def nonfinite_paths(obj, path="") -> list[str]:
 
 
 def _rounding_slack(exp: float) -> float:
-    """Half a unit in the last written decimal of a hand-rounded expectation (1.3863 -> 5e-5).
+    """Slack for a hand-rounded/truncated expectation: one unit in its last written decimal.
     Only for values written with 1-5 decimals; exact values (0, 1, 2.5) get no slack."""
     text = repr(float(exp))
     if "e" in text or "." not in text:
         return 0.0
     d = len(text.split(".")[1].rstrip("0"))
-    return 0.5 * 10 ** -d + 1e-12 if 1 <= d <= 5 and exp != round(exp, 1) else 0.0
+    # one unit in the last written decimal: covers rounding AND truncation (0.66976 -> 0.6697)
+    return 10 ** -d + 1e-12 if 1 <= d <= 5 and exp != round(exp, 1) else 0.0
 
 
 def close(got, exp, tol) -> bool:
@@ -365,7 +366,15 @@ def visual_data_problems(visuals: list, outputs: dict, state: dict) -> list[str]
         R = lambda r: resolve_ref(r, outputs, state)
         if t == "bar":
             series = v.get("series") or [{"values": v.get("values", v.get("source"))}]
-            ok = any(_finite_numbers(R(sv.get("values", sv.get("y", sv.get("source"))))) for sv in series if isinstance(sv, dict))
+
+            def bar_vals(ref):
+                vals = R(ref)
+                if isinstance(vals, list):
+                    vals = [R(x) if isinstance(x, str) else x for x in vals]
+                    if any(isinstance(x, list) for x in vals):          # matrix -> one bar per cell
+                        vals = [y for row in vals for y in (row if isinstance(row, list) else [row])]
+                return _finite_numbers(vals)
+            ok = any(bar_vals(sv.get("values", sv.get("y", sv.get("source")))) for sv in series if isinstance(sv, dict))
         elif t == "line":
             series = v.get("series") or [{"x": v.get("x"), "y": v.get("y", v.get("values"))}]
             ok = False
@@ -374,7 +383,9 @@ def visual_data_problems(visuals: list, outputs: dict, state: dict) -> list[str]
                     continue
                 ys = R(sv.get("y", sv.get("values")))
                 xs = R(sv.get("x", v.get("x"))) if (sv.get("x") is not None or v.get("x") is not None) else None
-                if isinstance(ys, list) and _finite_numbers(ys) and (xs is None or (isinstance(xs, list) and _finite_numbers(xs))):
+                if not isinstance(xs, list):          # the page falls back to x = 0, 1, 2, ...
+                    xs = None
+                if isinstance(ys, list) and _finite_numbers(ys) and (xs is None or _finite_numbers(xs)):
                     ok = True
             for pt in v.get("points") or []:
                 if isinstance(pt, dict) and _finite_numbers(R(pt.get("x"))) and _finite_numbers(R(pt.get("y"))):

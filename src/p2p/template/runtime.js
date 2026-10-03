@@ -424,13 +424,24 @@
   }
 
   function barChart(v) {
+    var autoLabels = null;
     var series = seriesList(v).map(function (s) {
       var vals = resolve(s.values || s.y || s.source);
+      if (Array.isArray(vals)) vals = vals.map(function (x) { return typeof x === "string" ? resolve(x) : x; });
+      if (Array.isArray(vals) && vals.some(Array.isArray)) {   // a matrix: one bar per cell
+        var flat = [], names = [];
+        vals.forEach(function (row, i) {
+          (Array.isArray(row) ? row : [row]).forEach(function (x, j) { flat.push(x); names.push("r" + (i + 1) + "\u00b7c" + (j + 1)); });
+        });
+        vals = flat; autoLabels = names;
+      }
       return { label: s.label, vals: Array.isArray(vals) ? vals : (isNum(vals) ? [vals] : []) };
     });
     var n = Math.max.apply(null, series.map(function (s) { return s.vals.length; }).concat([0]));
     if (!n) return frame(v.title, v.caption, el("p", { cls: "note", text: "No values to show." }));
     var labels = resolve(v.labels);
+    if (Array.isArray(labels)) labels = labels.map(function (x) { var r = resolve(x); return (typeof r === "string" || isNum(r)) ? r : x; });
+    if (autoLabels && !(Array.isArray(labels) && labels.length === n)) labels = autoLabels;
     var all = [];
     series.forEach(function (s) { s.vals.forEach(function (x) { if (isNum(x) && isFinite(x)) all.push(x); }); });
     var lo = isNum(v.y_min) ? v.y_min : Math.min(0, Math.min.apply(null, all.concat([0])));
